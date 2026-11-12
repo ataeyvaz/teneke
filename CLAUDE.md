@@ -7,6 +7,7 @@ Bu dosya her oturumun başında okunur. Buradaki kurallar, kullanıcının o ank
 Windows için güvenli, uyumlu ve hızlı bir masaüstü web tarayıcısı. İleride macOS ve Linux'a taşınacak, bu yüzden her karar çapraz platform düşünülerek verilir.
 
 Öncelik sırası (çatışma olursa bu sırayla karar ver):
+
 1. **Güvenlik** — kullanıcının bilgisayarı ve verisi
 2. **Uyumluluk** — neredeyse tüm web sitelerinin sorunsuz açılması
 3. **Performans** — hızlı açılış, akıcı sekmeler, kontrollü bellek
@@ -57,6 +58,7 @@ tests/
 ```
 
 Kurallar:
+
 - Her modülün tek bir sorumluluğu var. Modüller birbirine doğrudan değil, açık arayüzler üzerinden bağlanır.
 - Motora (Electron) özgü kod `main/` içinde kalır; ileride motor değişirse sadece bu katman değişmeli.
 - Web sitelerinin içeriği **asla** arayüzle aynı renderer'da çalışmaz. Siteler `WebContentsView` içinde, arayüz ayrı bir view'da.
@@ -67,6 +69,7 @@ Kurallar:
 Bu kurallar bir hatayı çözmek, bir özelliği çalıştırmak ya da "geçici olarak" bile gevşetilemez. Bir sorun bu kuralları gevşetmeden çözülemiyorsa DUR, kullanıcıya durumu açıkla ve alternatif öner.
 
 **Web içeriği (sitelerin açıldığı her WebContentsView):**
+
 - `nodeIntegration: false`
 - `contextIsolation: true`
 - `sandbox: true`
@@ -77,16 +80,19 @@ Bu kurallar bir hatayı çözmek, bir özelliği çalıştırmak ya da "geçici 
 - `nodeIntegrationInSubFrames`, `nodeIntegrationInWorker` asla açılmaz.
 
 **Arayüz (browser UI) renderer'ı:**
+
 - Aynı izolasyon ayarları (`contextIsolation`, `sandbox`, `nodeIntegration: false`).
 - Sıkı bir Content-Security-Policy; `unsafe-eval` yok, uzak script yok.
 - Preload'da `contextBridge` ile sadece tek tek tanımlanmış fonksiyonlar açılır. `ipcRenderer`'ın kendisi asla açılmaz.
 
 **IPC:**
+
 - Her IPC mesajında gönderenin (`event.senderFrame`) arayüz olduğu doğrulanır; web içeriğinden gelen mesajlar reddedilir.
 - Her girdi tip ve değer olarak doğrulanır (ör. zod ile).
 - Dosya yolu, URL ya da komut içeren girdiler ayrıca temizlenir.
 
 **Gezinme ve izinler:**
+
 - `setPermissionRequestHandler` ve `setPermissionCheckHandler` her oturumda tanımlı; varsayılan cevap REDDET. İzinler kullanıcıya sorulur ve site bazında saklanır.
 - `shell.openExternal` sadece doğrulanmış `http`, `https`, `mailto` adreslerine; diğer protokoller reddedilir.
 - `will-navigate`, `setWindowOpenHandler` ve `will-attach-webview` kontrol altında. Açılır pencereler sekme olarak açılır.
@@ -94,11 +100,13 @@ Bu kurallar bir hatayı çözmek, bir özelliği çalıştırmak ya da "geçici 
 - Sertifika hataları sessizce geçilmez; kullanıcıya açık bir uyarı sayfası gösterilir.
 
 **Paketleme:**
+
 - Electron Fuses: `RunAsNode` kapalı, `EnableNodeOptionsEnvironmentVariable` kapalı, `EnableNodeCliInspectArguments` kapalı, `EnableEmbeddedAsarIntegrityValidation` açık, `OnlyLoadAppFromAsar` açık.
 - DevTools üretim sürümünde arayüz için kapalı.
 - Gizli anahtar, token, şifre asla koda veya depoya yazılmaz.
 
 **Gizlilik:**
+
 - Telemetri yok (kullanıcı açıkça istemedikçe).
 - Gizli mod: kalıcı olmayan ayrı bir `session` partition; kapanınca her şey silinir.
 
@@ -116,16 +124,17 @@ Bu kurallar bir hatayı çözmek, bir özelliği çalıştırmak ya da "geçici 
 
 ## 7. Komutlar
 
-(Faz 1'de proje kurulunca bu bölümü gerçek komutlarla güncelle.)
-
 - `npm run dev` — geliştirme modunda çalıştır
-- `npm run build` — üretim derlemesi
-- `npm run typecheck` — TypeScript kontrolü
-- `npm run lint` — kod stili ve güvenlik kuralları
-- `npm test` — birim testleri
-- `npm run test:e2e` — uçtan uca testler
+- `npm run build` — tip kontrolü + üretim derlemesi (`out/` klasörüne)
+- `npm start` — derlenmiş uygulamayı çalıştır
+- `npm run typecheck` — TypeScript kontrolü (main/preload + renderer)
+- `npm run lint` — ESLint (strict, tip bilgili; `any`, eval, atlanmış test yasak)
+- `npm run lint:fix` / `npm run format` — otomatik düzeltme / Prettier ile biçimlendirme
+- `npm run format:check` — biçim kontrolü
+- `npm test` — Vitest birim testleri (`tests/unit/`)
+- `npm run test:e2e` — derle + Playwright uçtan uca testler (`tests/e2e/`)
 - `npm run security` — Electronegativity taraması
-- `npm run dist` — Windows kurulum dosyası
+- `npm run dist` — Windows kurulum dosyası (Faz 5'te eklenecek)
 
 ## 8. Yapma listesi
 

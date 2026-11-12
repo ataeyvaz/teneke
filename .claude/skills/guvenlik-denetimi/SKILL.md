@@ -21,6 +21,7 @@ Amaç: CLAUDE.md Bölüm 5'teki kuralların koda gerçekten uygulandığını ka
 ## Kontrol listesi
 
 **webPreferences (tüm BrowserWindow / WebContentsView oluşturma yerlerini grep ile bul)**
+
 - [ ] nodeIntegration false, contextIsolation true, sandbox true, webSecurity true
 - [ ] allowRunningInsecureContent false, experimentalFeatures false
 - [ ] nodeIntegrationInSubFrames / nodeIntegrationInWorker yok
@@ -28,26 +29,31 @@ Amaç: CLAUDE.md Bölüm 5'teki kuralların koda gerçekten uygulandığını ka
 - [ ] `<webview>` kullanımı yok, `will-attach-webview` engelli
 
 **Preload ve IPC**
+
 - [ ] contextBridge sadece tek tek tanımlı fonksiyonlar açıyor; ipcRenderer doğrudan açılmıyor
 - [ ] Her `ipcMain.handle/on` gönderen frame'i doğruluyor
 - [ ] Her IPC girdisi şema ile doğrulanıyor
 - [ ] Dosya yolu / URL içeren girdiler temizleniyor
 
 **Gezinme ve dış bağlantılar**
+
 - [ ] setWindowOpenHandler tanımlı
 - [ ] will-navigate kontrollü
 - [ ] shell.openExternal sadece izinli protokollerle
 - [ ] Sertifika hataları sessizce kabul edilmiyor (`certificate-error` handler'ını kontrol et)
 
 **Oturum ve izinler**
+
 - [ ] Her session'da setPermissionRequestHandler ve setPermissionCheckHandler var, varsayılan reddet
 - [ ] Gizli mod kalıcı olmayan partition kullanıyor
 
 **Arayüz**
+
 - [ ] Content-Security-Policy tanımlı, unsafe-eval yok, uzak script yok
 - [ ] Arayüz özel protokolden yükleniyor
 
 **Paketleme**
+
 - [ ] Electron Fuses CLAUDE.md'deki gibi
 - [ ] Üretimde arayüz için DevTools kapalı
 - [ ] Depoda gizli anahtar/token yok (`git grep -i -E "api[_-]?key|secret|token|password"`)

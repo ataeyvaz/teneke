@@ -8,12 +8,15 @@ description: Tarayıcıya yeni bir özellik ekleme veya bir hatayı düzeltme i�
 Kullanıcının yazılım bilgisi düşük. Bu akış, her değişikliğin küçük, test edilmiş, güvenli ve anlaşılır olmasını sağlar.
 
 ## 1. Anla
+
 - SUREC.md'yi oku, görevin hangi faza ait olduğunu belirle.
 - İstek belirsizse tek, net bir soru sor.
 - Görev büyükse (birden fazla modül, 5+ dosya) parçalara böl.
 
 ## 2. Plan sun (kod yazmadan önce)
+
 Kullanıcıya Türkçe, kısa:
+
 - Ne yapacağım (1-2 cümle)
 - Hangi dosyalar değişecek / eklenecek
 - Güvenliğe dokunuyor mu? (evet ise neden ve nasıl güvende kalacak)
@@ -23,18 +26,22 @@ Kullanıcıya Türkçe, kısa:
 Küçük ve güvenliğe dokunmayan işlerde onay beklemeden devam edebilirsin; diğerlerinde onay al.
 
 ## 3. Uygula
+
 - CLAUDE.md mimarisine ve güvenlik kurallarına uy.
 - Tek bir mantıksal değişiklik yap; alakasız "temizlik" yapma.
 - Hata durumlarını ele al ve logla.
 
 ## 4. Test et
+
 - Birim testi yaz (Vitest). Arayüz veya gezinme içeriyorsa uçtan uca test ekle (Playwright).
 - Sırayla çalıştır: `npm run typecheck`, `npm run lint`, `npm test`.
 - Hata varsa düzelt ve tekrar çalıştır. Testleri silme veya atlama.
 - Güvenliğe dokunduysa `guvenlik-denetimi` skill'ini uygula.
 
 ## 5. Raporla
+
 Kullanıcıya Türkçe:
+
 ```
 ✅ Ne yaptım: ...
 🔍 Nasıl test edersin:
@@ -45,6 +52,7 @@ Kullanıcıya Türkçe:
 ```
 
 ## 6. Kaydet
+
 - SUREC.md'de görevi işaretle, "Şu anki faz" ve "Sıradaki görev"i güncelle.
 - Önemli bir karar verdiysen Karar Günlüğü'ne ekle.
 - Yeni bir sorun bulduysan Bilinen Sorunlar'a ekle.

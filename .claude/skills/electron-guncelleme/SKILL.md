@@ -6,9 +6,11 @@ description: Electron'u ve bağımlılıkları güvenli şekilde güncelleme. Ku
 # Electron ve Bağımlılık Güncelleme
 
 ## Neden önemli
+
 Tarayıcının güvenliği büyük ölçüde Chromium güvenlik yamalarına bağlı. Electron bu yamaları düzenli yayınlar; geride kalmak kullanıcıyı bilinen açıklara maruz bırakır. Hedef: güvenlik içeren Electron sürümlerini birkaç gün içinde almak.
 
 ## Adımlar
+
 1. Yeni bir git dalı aç: `git checkout -b chore/electron-update`
 2. Mevcut ve hedef sürümü belirle (`npm view electron version`).
 3. Hedef sürümün sürüm notlarını ve "breaking changes" listesini kontrol et; projeyi etkileyen değişiklikleri kullanıcıya sade dille özetle.

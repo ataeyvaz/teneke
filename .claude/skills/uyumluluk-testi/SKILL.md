@@ -8,11 +8,13 @@ description: Tarayıcının web sitesi uyumluluğunu test etme. Faz 2'de, her El
 İki parça var: otomatik testler (Claude çalıştırır) ve elle test listesi (kullanıcı yapar, çünkü giriş yapma, video izleme gibi şeyler gerçek kullanım ister).
 
 ## 1. Otomatik duman testi
+
 `tests/e2e/compat.spec.ts` yoksa oluştur. Aşağıdaki her site için: sayfa yükleniyor mu, başlık boş değil mi, konsolda kritik hata var mı. Sonra `npm run test:e2e` çalıştır.
 
 Siteler: google.com, youtube.com, wikipedia.org, github.com, x.com, instagram.com, reddit.com, amazon.com.tr, trendyol.com, hepsiburada.com, sahibinden.com, turkiye.gov.tr, eksisozluk.com, docs.google.com, outlook.live.com, web.whatsapp.com, figma.com, html5test.com
 
 ## 2. Kullanıcının elle test listesi
+
 Bu listeyi kullanıcıya Türkçe ve tıklanabilir adımlarla ver, sonuçları birlikte değerlendir:
 
 - [ ] Google hesabına giriş (uyarı çıkıyor mu?)
@@ -28,8 +30,10 @@ Bu listeyi kullanıcıya Türkçe ve tıklanabilir adımlarla ver, sonuçları b
 - [ ] Netflix (Faz 7'ye kadar çalışmaması normal; hata mesajı düzgün mü?)
 
 ## 3. Raporla
+
 ```
 ## Uyumluluk Raporu — [tarih], Electron [sürüm]
 | Site / Senaryo | Sonuç | Not |
 ```
+
 Başarısız olanları SUREC.md "Bilinen Sorunlar"a ekle. Bir sorunu çözmek için güvenlik ayarı gevşetmek gerekiyor gibi görünüyorsa ASLA gevşetme; kullanıcıya açıkla ve alternatif ara (ör. user-agent ayarı, izin yönetimi).

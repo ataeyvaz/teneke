@@ -30,7 +30,9 @@ export function createMainWindow(): BrowserWindow {
     }
   })
 
-  win.once('ready-to-show', () => win.show())
+  win.once('ready-to-show', () => {
+    win.show()
+  })
 
   const devServerUrl = process.env['ELECTRON_RENDERER_URL']
   const load =
