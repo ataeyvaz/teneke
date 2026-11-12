@@ -5,7 +5,7 @@ export const UI_HOST = 'ui'
 export const UI_ORIGIN = `${APP_SCHEME}://${UI_HOST}`
 
 /** Height (px) of the browser UI strip at the top of the window. */
-export const TOOLBAR_HEIGHT = 80
+export const TOOLBAR_HEIGHT = 48
 
 /** Page opened in a new tab until the settings page exists (Phase 3). */
 export const DEFAULT_HOMEPAGE = 'https://duckduckgo.com'

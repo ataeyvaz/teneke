@@ -48,6 +48,8 @@ export function createMainWindow(
   win.contentView.addChildView(uiView)
 
   const sendTabState = (state: TabState): void => {
+    if (win.isDestroyed()) return
+    win.setTitle(state.title.trim() !== '' ? `${state.title.trim()} — Teneke` : 'Teneke')
     if (!uiView.webContents.isDestroyed()) uiView.webContents.send(IpcChannel.tabState, state)
   }
   const tabs = new TabManager(win, sessions.contentSession, sendTabState)

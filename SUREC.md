@@ -3,7 +3,7 @@
 Bu dosya projenin hafızasıdır. Claude her oturumun başında okur, her görev bitince günceller.
 
 **Şu anki faz:** Faz 1 — Güvenli iskelet
-**Sıradaki görev:** Faz 1 / Parça 5 — Arayüz: adres çubuğu, geri/ileri/yenile/durdur düğmeleri, başlık ve yükleniyor göstergesi (preload API'si hazır: `window.teneke.navigate/back/forward/reload/stop/onTabState`) 🟢 Sonnet yeter
+**Sıradaki görev:** Faz 1 / Parça 6 — Electron Fuses, Electronegativity taraması, `guvenlik-denetimi`, ilk e2e test (açılış + siteye gitme + pencere kapanışı) 🔴 **Opus'a geç** (`/model`)
 
 ---
 
@@ -17,7 +17,7 @@ Bu dosya projenin hafızasıdır. Claude her oturumun başında okur, her görev
 
 ## Faz 1 — Güvenli iskelet
 
-Uygulama parçaları (model önerisi): 1 Git+iskelet 🟢 ✅ · 2 Araçlar 🟢 ✅ · 3 Güvenli pencere mimarisi 🔴 Opus ✅ · 4 IPC+preload 🔴 Opus ✅ · 5 Arayüz (adres çubuğu, gezinme düğmeleri) 🟢 · 6 Fuses+denetim+e2e 🔴 Opus
+Uygulama parçaları (model önerisi): 1 Git+iskelet 🟢 ✅ · 2 Araçlar 🟢 ✅ · 3 Güvenli pencere mimarisi 🔴 Opus ✅ · 4 IPC+preload 🔴 Opus ✅ · 5 Arayüz (adres çubuğu, gezinme düğmeleri) 🟢 ✅ · 6 Fuses+denetim+e2e 🔴 Opus
 
 Hedef: Açılan, siteleri gösteren, güvenlik ayarları ilk günden doğru kurulmuş bir pencere.
 
@@ -27,9 +27,9 @@ Hedef: Açılan, siteleri gösteren, güvenlik ayarları ilk günden doğru kuru
 - [x] CLAUDE.md "Komutlar" bölümünü gerçek komutlarla güncelle
 - [x] Ana pencere: arayüz için ayrı view, web içeriği için WebContentsView
 - [ ] Tüm güvenlik ayarları (CLAUDE.md Bölüm 5) + Electron Fuses — webPreferences, app://, CSP başlığı, izinler (varsayılan red), gezinme/pop-up/webview koruması, openExternal filtresi ✅; IPC (Parça 4) ✅ (Parça 4: tek giriş noktası `IpcRouter`, gönderen doğrulama, zod şemaları); Fuses (Parça 6) kaldı
-- [ ] Adres çubuğu: URL'ye git, URL değilse arama yap (varsayılan arama motoru ayarlanabilir olacak şekilde) — ana süreç tarafı ✅ (`resolveAddressInput`, `DEFAULT_SEARCH_TEMPLATE`), arayüz Parça 5
-- [ ] Geri, ileri, yenile, durdur
-- [ ] Sayfa başlığı ve yükleniyor göstergesi
+- [x] Adres çubuğu: URL'ye git, URL değilse arama yap (varsayılan arama motoru ayarlanabilir olacak şekilde) — ana süreç (`resolveAddressInput`) + arayüz (`AddressBar`, Ctrl+L) ✅
+- [x] Geri, ileri, yenile, durdur
+- [x] Sayfa başlığı ve yükleniyor göstergesi
 - [ ] Electronegativity taraması temiz
 - [ ] İlk uçtan uca test: uygulama açılıyor, bir siteye gidiliyor
 
@@ -124,21 +124,23 @@ Her fazın sonunda:
 
 ## Karar Günlüğü
 
-| Tarih      | Karar                                                                                                                                             | Neden                                                                                                                    |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| —          | Electron + TypeScript seçildi                                                                                                                     | Chromium uyumluluğu, güvenlik yamalarının hızlı gelmesi, çapraz platform, yapay zekayla geliştirmeye uygunluk            |
-| —          | `<webview>` yerine `WebContentsView`                                                                                                              | Daha güvenli ve Electron'un önerdiği modern API                                                                          |
-| 2026-11-12 | Proje adı **Teneke**, GitHub: ataeyvaz/teneke                                                                                                     | Kullanıcı belirledi                                                                                                      |
-| 2026-11-12 | TypeScript 6.0 (7.0 değil)                                                                                                                        | typescript-eslint henüz TS < 6.1 destekliyor                                                                             |
-| 2026-11-12 | Electron 45, electron-vite 6, Vite 8, React 19, Tailwind 4                                                                                        | Kurulum anındaki en güncel kararlı sürümler                                                                              |
-| 2026-11-12 | Faz 1 altı parçaya bölündü; güvenlik parçaları (3, 4, 6) Opus ile, diğerleri Sonnet ile                                                           | Maliyet/kalite dengesi                                                                                                   |
-| 2026-11-12 | Araçlar: ESLint 10 (strictTypeChecked), Prettier, Vitest 5, Playwright, Electronegativity                                                         | CLAUDE.md yığın listesi; kurallar `eslint.config.mjs` içinde (renderer'da Node/electron import yasak, test atlama yasak) |
-| 2026-11-12 | E2E testler `npm run test:e2e` ile önce derlenir; `--pass-with-no-tests` ilk e2e test Parça 6'ya kadar                                            | Boş test klasörü hata vermesin                                                                                           |
-| 2026-11-12 | Arayüz `app://ui` özel protokolünden, CSP HTTP başlığıyla (`src/main/app/csp.ts`); dev modda gevşetilmiş dev CSP (unsafe-inline, eval yok)        | Vite/React hızlı yenileme inline betik gerektiriyor; üretim CSP'si sıkı kalıyor                                          |
-| 2026-11-12 | BaseWindow + ayrı WebContentsView'lar; arayüz `teneke-ui` (bellekte), siteler `persist:default` oturumunda                                        | Arayüz ve web içeriği hiçbir şey paylaşmasın                                                                             |
-| 2026-11-12 | Sitelere giden User-Agent'tan `Electron/x` ve `teneke/x` çıkarıldı                                                                                | Uyumluluk: Google girişi vb. gömülü tarayıcıları engelliyor                                                              |
-| 2026-11-12 | Varsayılan açılış sayfası DuckDuckGo                                                                                                              | Kullanıcı onayladı; Faz 3'te ayarlanabilir olacak                                                                        |
-| 2026-11-12 | Bağımlılıklar periyodik güncellenecek ve her güncelleme geri alınabilir olacak (etiket + ayrı dal + revert/`npm ci` + yüksek sürümle geri yayın)  | Kullanıcı isteği; güvenlik yamaları hızlı alınmalı ama hata halinde güvenle geri dönülmeli                               |
-| 2026-11-12 | `zod` eklendi (yalnızca ana süreçte)                                                                                                              | IPC girdi doğrulaması; kullanıcı onayladı. Sandbox'lı preload'a girmez (preload yalnızca `electron` require eder)        |
-| 2026-11-12 | Tüm IPC tek kapıdan: `src/main/ipc/IpcRouter.ts` (gönderen = kayıtlı arayüz view'ı + ana çerçeve + arayüz kökeni; argümanlar zod tuple şemasıyla) | Yeni kanal eklerken bu kalıp dışına çıkılmaz                                                                             |
-| 2026-11-12 | Adres çubuğu girdisi hiçbir zaman çalıştırılmaz: http(s) ya da alan adı değilse aramaya gider (`javascript:`, `file:` dahil)                      | Güvenlik                                                                                                                 |
+| Tarih      | Karar                                                                                                                                               | Neden                                                                                                                    |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| —          | Electron + TypeScript seçildi                                                                                                                       | Chromium uyumluluğu, güvenlik yamalarının hızlı gelmesi, çapraz platform, yapay zekayla geliştirmeye uygunluk            |
+| —          | `<webview>` yerine `WebContentsView`                                                                                                                | Daha güvenli ve Electron'un önerdiği modern API                                                                          |
+| 2026-11-12 | Proje adı **Teneke**, GitHub: ataeyvaz/teneke                                                                                                       | Kullanıcı belirledi                                                                                                      |
+| 2026-11-12 | TypeScript 6.0 (7.0 değil)                                                                                                                          | typescript-eslint henüz TS < 6.1 destekliyor                                                                             |
+| 2026-11-12 | Electron 45, electron-vite 6, Vite 8, React 19, Tailwind 4                                                                                          | Kurulum anındaki en güncel kararlı sürümler                                                                              |
+| 2026-11-12 | Faz 1 altı parçaya bölündü; güvenlik parçaları (3, 4, 6) Opus ile, diğerleri Sonnet ile                                                             | Maliyet/kalite dengesi                                                                                                   |
+| 2026-11-12 | Araçlar: ESLint 10 (strictTypeChecked), Prettier, Vitest 5, Playwright, Electronegativity                                                           | CLAUDE.md yığın listesi; kurallar `eslint.config.mjs` içinde (renderer'da Node/electron import yasak, test atlama yasak) |
+| 2026-11-12 | E2E testler `npm run test:e2e` ile önce derlenir; `--pass-with-no-tests` ilk e2e test Parça 6'ya kadar                                              | Boş test klasörü hata vermesin                                                                                           |
+| 2026-11-12 | Arayüz `app://ui` özel protokolünden, CSP HTTP başlığıyla (`src/main/app/csp.ts`); dev modda gevşetilmiş dev CSP (unsafe-inline, eval yok)          | Vite/React hızlı yenileme inline betik gerektiriyor; üretim CSP'si sıkı kalıyor                                          |
+| 2026-11-12 | BaseWindow + ayrı WebContentsView'lar; arayüz `teneke-ui` (bellekte), siteler `persist:default` oturumunda                                          | Arayüz ve web içeriği hiçbir şey paylaşmasın                                                                             |
+| 2026-11-12 | Sitelere giden User-Agent'tan `Electron/x` ve `teneke/x` çıkarıldı                                                                                  | Uyumluluk: Google girişi vb. gömülü tarayıcıları engelliyor                                                              |
+| 2026-11-12 | Varsayılan açılış sayfası DuckDuckGo                                                                                                                | Kullanıcı onayladı; Faz 3'te ayarlanabilir olacak                                                                        |
+| 2026-11-12 | Bağımlılıklar periyodik güncellenecek ve her güncelleme geri alınabilir olacak (etiket + ayrı dal + revert/`npm ci` + yüksek sürümle geri yayın)    | Kullanıcı isteği; güvenlik yamaları hızlı alınmalı ama hata halinde güvenle geri dönülmeli                               |
+| 2026-11-12 | `zod` eklendi (yalnızca ana süreçte)                                                                                                                | IPC girdi doğrulaması; kullanıcı onayladı. Sandbox'lı preload'a girmez (preload yalnızca `electron` require eder)        |
+| 2026-11-12 | Tüm IPC tek kapıdan: `src/main/ipc/IpcRouter.ts` (gönderen = kayıtlı arayüz view'ı + ana çerçeve + arayüz kökeni; argümanlar zod tuple şemasıyla)   | Yeni kanal eklerken bu kalıp dışına çıkılmaz                                                                             |
+| 2026-11-12 | Adres çubuğu girdisi hiçbir zaman çalıştırılmaz: http(s) ya da alan adı değilse aramaya gider (`javascript:`, `file:` dahil)                        | Güvenlik                                                                                                                 |
+| 2026-11-12 | Araç şeridi tek satır, 48 px (`TOOLBAR_HEIGHT`); arayüzde satır içi `style` yok (CSP `style-src 'self'`), yalnızca Tailwind sınıfları + CSS dosyası | CSP sıkı kalsın                                                                                                          |
+| 2026-11-12 | Adres çubuğu boştayken sayfa başlığını, odaklanınca tam URL'yi gösterir; arayüz URL üretmez, metni ana sürece yollar                                | Güvenlik: tek karar noktası `resolveAddressInput`                                                                        |
