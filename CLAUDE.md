@@ -127,13 +127,15 @@ Bu kurallar bir hatayı çözmek, bir özelliği çalıştırmak ya da "geçici 
 - `npm run dev` — geliştirme modunda çalıştır
 - `npm run build` — tip kontrolü + üretim derlemesi (`out/` klasörüne)
 - `npm start` — derlenmiş uygulamayı çalıştır
-- `npm run typecheck` — TypeScript kontrolü (main/preload + renderer)
+- `npm run typecheck` — TypeScript kontrolü (main/preload + renderer + e2e testleri)
 - `npm run lint` — ESLint (strict, tip bilgili; `any`, eval, atlanmış test yasak)
 - `npm run lint:fix` / `npm run format` — otomatik düzeltme / Prettier ile biçimlendirme
 - `npm run format:check` — biçim kontrolü
 - `npm test` — Vitest birim testleri (`tests/unit/`)
-- `npm run test:e2e` — derle + Playwright uçtan uca testler (`tests/e2e/`)
+- `npm run test:e2e` — derle + Playwright uçtan uca testler (`tests/e2e/`, internetsiz yerel test sitesiyle)
 - `npm run security` — Electronegativity taraması
+- `npm run pack` — paketlenmiş uygulama, kurulumsuz (`release/win-unpacked/Teneke.exe`), Electron Fuses çevrilmiş
+- `npm run test:packaged` — paketlenmiş uygulamayı denetle (Fuses, asar içeriği, RunAsNode, açılış/kapanış); önce `npm run pack`
 - `npm run dist` — Windows kurulum dosyası (Faz 5'te eklenecek)
 
 ## 8. Yapma listesi

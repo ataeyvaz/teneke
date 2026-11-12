@@ -2,8 +2,8 @@
 
 Bu dosya projenin hafızasıdır. Claude her oturumun başında okur, her görev bitince günceller.
 
-**Şu anki faz:** Faz 1 — Güvenli iskelet
-**Sıradaki görev:** Faz 1 / Parça 6 — Electron Fuses, Electronegativity taraması, `guvenlik-denetimi`, ilk e2e test (açılış + siteye gitme + pencere kapanışı) 🔴 **Opus'a geç** (`/model`)
+**Şu anki faz:** Faz 1 tamamlandı → Faz 2 — Erken uyumluluk testleri
+**Sıradaki görev:** Faz 2 — `uyumluluk-testi` skill'i ile site listesini test et (önce plan sun; izin politikası kararları — tam ekran, pano — burada netleşecek)
 
 ---
 
@@ -17,7 +17,7 @@ Bu dosya projenin hafızasıdır. Claude her oturumun başında okur, her görev
 
 ## Faz 1 — Güvenli iskelet
 
-Uygulama parçaları (model önerisi): 1 Git+iskelet 🟢 ✅ · 2 Araçlar 🟢 ✅ · 3 Güvenli pencere mimarisi 🔴 Opus ✅ · 4 IPC+preload 🔴 Opus ✅ · 5 Arayüz (adres çubuğu, gezinme düğmeleri) 🟢 ✅ · 6 Fuses+denetim+e2e 🔴 Opus
+Uygulama parçaları (model önerisi): 1 Git+iskelet 🟢 ✅ · 2 Araçlar 🟢 ✅ · 3 Güvenli pencere mimarisi 🔴 Opus ✅ · 4 IPC+preload 🔴 Opus ✅ · 5 Arayüz (adres çubuğu, gezinme düğmeleri) 🟢 ✅ · 6 Fuses+denetim+e2e 🔴 Opus ✅
 
 Hedef: Açılan, siteleri gösteren, güvenlik ayarları ilk günden doğru kurulmuş bir pencere.
 
@@ -26,12 +26,12 @@ Hedef: Açılan, siteleri gösteren, güvenlik ayarları ilk günden doğru kuru
 - [x] ESLint, Prettier, Vitest, Playwright kurulumu ve npm script'leri
 - [x] CLAUDE.md "Komutlar" bölümünü gerçek komutlarla güncelle
 - [x] Ana pencere: arayüz için ayrı view, web içeriği için WebContentsView
-- [ ] Tüm güvenlik ayarları (CLAUDE.md Bölüm 5) + Electron Fuses — webPreferences, app://, CSP başlığı, izinler (varsayılan red), gezinme/pop-up/webview koruması, openExternal filtresi ✅; IPC (Parça 4) ✅ (Parça 4: tek giriş noktası `IpcRouter`, gönderen doğrulama, zod şemaları); Fuses (Parça 6) kaldı
+- [x] Tüm güvenlik ayarları (CLAUDE.md Bölüm 5) + Electron Fuses — webPreferences, app://, CSP başlığı, izinler (varsayılan red), gezinme/pop-up/webview koruması, openExternal filtresi ✅; IPC (Parça 4) ✅ (Parça 4: tek giriş noktası `IpcRouter`, gönderen doğrulama, zod şemaları); Fuses ✅ (Parça 6: `electron-builder.yml`, `npm run test:packaged` ile doğrulanıyor; asar kurcalama denemesi açılışı engelledi)
 - [x] Adres çubuğu: URL'ye git, URL değilse arama yap (varsayılan arama motoru ayarlanabilir olacak şekilde) — ana süreç (`resolveAddressInput`) + arayüz (`AddressBar`, Ctrl+L) ✅
 - [x] Geri, ileri, yenile, durdur
 - [x] Sayfa başlığı ve yükleniyor göstergesi
-- [ ] Electronegativity taraması temiz
-- [ ] İlk uçtan uca test: uygulama açılıyor, bir siteye gidiliyor
+- [x] Electronegativity taraması temiz — 3 TENTATIVE bulgu incelendi, gerekçeleri kodda yorum olarak
+- [x] İlk uçtan uca test: uygulama açılıyor, bir siteye gidiliyor (+ güvenlik ve kapanış testleri, `tests/e2e/`)
 
 ## Faz 2 — Erken uyumluluk testleri
 
@@ -67,7 +67,7 @@ Hedef: Büyük sorunları erken yakalamak.
 
 ## Faz 5 — Dağıtım
 
-- [ ] electron-builder ile Windows kurulum dosyası (NSIS)
+- [ ] electron-builder ile Windows kurulum dosyası (NSIS) — electron-builder Faz 1'de kuruldu (`win: dir` + Fuses); NSIS hedefi eklenecek
 - [ ] Kod imzalama (Azure Trusted Signing veya sertifika)
 - [ ] Otomatik güncelleme (GitHub Releases üzerinden)
 - [ ] GitHub Actions: her push'ta test + güvenlik taraması, sürümde Windows derlemesi
@@ -116,9 +116,10 @@ Her fazın sonunda:
 - Electronegativity: 3 "TENTATIVE / incelenmeli" bulgu kaldı, hepsi incelendi ve kabul edildi: (1) CSP_GLOBAL_CHECK `src/main/index.ts` — geliştirme CSP'sindeki `unsafe-inline` (yalnızca dev; üretim CSP'si sıkı), (2) CERTIFICATE_ERROR_EVENT — handler sadece logluyor, `preventDefault` yok → bağlantı reddediliyor, (3) OPEN_EXTERNAL — `isSafeExternalUrl` ile doğrulanıyor.
 - **Tüm izinler reddediliyor** (tam ekran, panoya kopyalama dahil). YouTube tam ekran ve sitelerdeki "kopyala" düğmeleri şu an çalışmaz. Faz 2'de uyumluluk testinde ele alınacak; izin sorma arayüzü Faz 3.
 - Açılır pencereler (`target=_blank`, `window.open`) şimdilik aynı sekmede açılıyor; Faz 3'te yeni sekmede açılacak.
-- Playwright `_electron.launch` uygulamanın sayfalarını görmedi (BaseWindow + WebContentsView). Parça 6'da ilk e2e testte çözülecek. Doğrulama şimdilik `--remote-debugging-port` + CDP ile yapıldı.
+- Playwright: engellenen bir gezinmeden sonra `page.url()`/`toHaveURL` boş ("") okuyabiliyor. Gezinme testlerinde adres ana süreçten okunur (`tabUrl()` — `tests/e2e/helpers.ts`).
+- e2e testleri paketlenmiş `.exe` ile çalışmaz (Fuses hata ayıklama kapısını kapatıyor, bilerek). Paketlenmiş uygulama `npm run test:packaged` ile CDP üzerinden denetlenir.
 - Sertifika hatası olan sitelerde bağlantı reddediliyor ama kullanıcıya uyarı sayfası yok (Faz 4).
-- ~~Pencere kapanırken "Object has been destroyed" hata kutusu~~ — düzeltildi (2026-11-12): `TabManager.destroyAll()` artık yok edilmiş pencereye dokunmuyor. Kapanış e2e testi Parça 6'ya eklenecek.
+- ~~Pencere kapanırken "Object has been destroyed" hata kutusu~~ — düzeltildi (2026-11-12): `TabManager.destroyAll()` artık yok edilmiş pencereye dokunmuyor. Kapanış e2e testi eklendi (`tests/e2e/lifecycle.spec.ts`); bu test ikinci bir kapanış hatasını da yakaladı (yüklenmeden kapanınca `win.show()`), düzeltildi.
 - Electronegativity bakımı yavaş (son sürüm 2023-03) ve kurulum bağımlılığı `tar` için `npm audit` "critical" gösteriyor. Yalnızca geliştirme aracı, uygulamaya girmiyor. `npm audit fix --force` ÇALIŞTIRMA. Alternatif ileride değerlendirilebilir.
 - `npm audit` ayrıca eslint/typescript-eslint zincirinde `minimatch` kaynaklı orta seviye uyarılar veriyor (yalnızca geliştirme aracı).
 
@@ -144,3 +145,6 @@ Her fazın sonunda:
 | 2026-11-12 | Adres çubuğu girdisi hiçbir zaman çalıştırılmaz: http(s) ya da alan adı değilse aramaya gider (`javascript:`, `file:` dahil)                        | Güvenlik                                                                                                                 |
 | 2026-11-12 | Araç şeridi tek satır, 48 px (`TOOLBAR_HEIGHT`); arayüzde satır içi `style` yok (CSP `style-src 'self'`), yalnızca Tailwind sınıfları + CSS dosyası | CSP sıkı kalsın                                                                                                          |
 | 2026-11-12 | Adres çubuğu boştayken sayfa başlığını, odaklanınca tam URL'yi gösterir; arayüz URL üretmez, metni ana sürece yollar                                | Güvenlik: tek karar noktası `resolveAddressInput`                                                                        |
+| 2026-11-12 | `electron-builder` Faz 5'ten öne alındı (sadece `dir` hedefi) + `@electron/fuses`, `@electron/asar`                                                 | Fuses yalnızca paketlenmiş uygulamada çevrilir; kullanıcı onayladı                                                       |
+| 2026-11-12 | Fuses: RunAsNode, NODE_OPTIONS, inspect kapalı; asar bütünlüğü + yalnızca asar açık; ek olarak çerez şifreleme açık, file:// ek yetkileri kapalı    | CLAUDE.md Bölüm 5 + Electron önerileri                                                                                   |
+| 2026-11-12 | Tüm bağımlılıklar devDependencies; `zod` ana sürece gömülü (`externalizeDeps.exclude`)                                                              | Paket `node_modules` içermez; `app.asar` ~750 KB                                                                         |

@@ -7,6 +7,8 @@ export function openExternalSafely(url: string): void {
     console.warn('[navigation] Refused to open external URL:', url)
     return
   }
+  // Electronegativity OPEN_EXTERNAL_JS_CHECK: reviewed - only http(s)/mailto pass
+  // isSafeExternalUrl (tests/unit/url-policy.test.ts).
   shell.openExternal(url).catch((error: unknown) => {
     console.error('[navigation] openExternal failed:', url, error)
   })

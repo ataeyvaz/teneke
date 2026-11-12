@@ -26,6 +26,7 @@ app.on('web-contents-created', (_event, contents) => {
 
 // Certificate errors are NOT overridden: without preventDefault Electron
 // rejects the connection. We only log it. (Warning page: Phase 4.)
+// Electronegativity CERTIFICATE_ERROR_EVENT_JS_CHECK: reviewed - nothing is trusted here.
 app.on('certificate-error', (_event, _contents, url, error) => {
   console.warn(`[security] Certificate error for ${url}: ${error}`)
 })
@@ -43,6 +44,8 @@ function resolveUiSource(): UiSource {
 function prepareUiSession(ui: UiSource): void {
   if (ui.isDev) {
     // Dev server responses get the (slightly relaxed) dev CSP as a header.
+    // Electronegativity CSP_GLOBAL_CHECK: reviewed - dev server only; packaged builds
+    // use UI_CSP_PRODUCTION (no inline, no eval). See tests/unit/csp.test.ts.
     const csp = buildDevCsp(ui.origin)
     sessions.uiSession.webRequest.onHeadersReceived(
       { urls: [`${ui.origin}/*`] },

@@ -1,0 +1,28 @@
+# Packaging configuration (Phase 1: unpacked app + fuses; installer/signing/updates: Phase 5).
+appId: com.ataeyvaz.teneke
+productName: Teneke
+directories:
+  output: release
+  buildResources: resources
+
+# Only the compiled app goes into app.asar. Sources, tests and configs never ship.
+files:
+  - out/**
+  - package.json
+asar: true
+npmRebuild: false
+
+# Electron Fuses (CLAUDE.md section 5). Flipped on the packaged binary.
+# Verify with: npx @electron/fuses read --app release/win-unpacked/Teneke.exe
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  enableCookieEncryption: true
+  grantFileProtocolExtraPrivileges: false
+
+win:
+  target:
+    - dir

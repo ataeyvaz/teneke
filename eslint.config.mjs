@@ -58,7 +58,8 @@ export default tseslint.config(
       'src/preload/**/*.ts',
       'src/shared/**/*.ts',
       '*.config.ts',
-      'tests/**/*.ts'
+      'tests/**/*.ts',
+      'scripts/**/*.mjs'
     ],
     languageOptions: { globals: globals.node }
   },

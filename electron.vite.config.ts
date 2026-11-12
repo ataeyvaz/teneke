@@ -7,7 +7,9 @@ const sharedAlias = { '@shared': resolve(__dirname, 'src/shared') }
 
 export default defineConfig({
   main: {
-    resolve: { alias: sharedAlias }
+    resolve: { alias: sharedAlias },
+    // Bundle zod into the main process so the packaged app ships no node_modules.
+    build: { externalizeDeps: { exclude: ['zod'] } }
   },
   preload: {
     resolve: { alias: sharedAlias }

@@ -80,6 +80,8 @@ export function createMainWindow(
     console.error('[window] UI renderer gone:', details.reason)
   })
   uiView.webContents.loadURL(ui.url).catch((error: unknown) => {
+    // The window may already be closed (load aborted); never touch it then.
+    if (win.isDestroyed()) return
     console.error('[window] Failed to load browser UI:', error)
     win.show()
   })
