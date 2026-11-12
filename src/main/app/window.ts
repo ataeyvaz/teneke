@@ -52,11 +52,26 @@ export function createMainWindow(
     win.setTitle(state.title.trim() !== '' ? `${state.title.trim()} — Teneke` : 'Teneke')
     if (!uiView.webContents.isDestroyed()) uiView.webContents.send(IpcChannel.tabState, state)
   }
-  const tabs = new TabManager(win, sessions.contentSession, sendTabState)
+  // HTML fullscreen (video players, games): the page covers the whole screen
+  // and the toolbar is hidden. Esc (handled by Chromium) leaves it again.
+  let htmlFullscreen = false
+  const setHtmlFullscreen = (fullscreen: boolean): void => {
+    if (win.isDestroyed() || htmlFullscreen === fullscreen) return
+    htmlFullscreen = fullscreen
+    uiView.setVisible(!fullscreen)
+    win.setFullScreen(fullscreen)
+    layout()
+  }
+
+  const tabs = new TabManager(win, sessions.contentSession, sendTabState, setHtmlFullscreen)
   ipc.attach(uiView.webContents, tabs)
 
   const layout = (): void => {
     const { width, height } = win.getContentBounds()
+    if (htmlFullscreen) {
+      tabs.setBounds({ x: 0, y: 0, width, height })
+      return
+    }
     uiView.setBounds({ x: 0, y: 0, width, height: TOOLBAR_HEIGHT })
     tabs.setBounds({
       x: 0,
@@ -89,6 +104,18 @@ export function createMainWindow(
   tabs.openTab(DEFAULT_HOMEPAGE)
 
   // WebContentsViews are not destroyed with their window; close them explicitly.
+  // Closing the window first closes the tabs (giving pages their beforeunload
+  // chance); the window itself only closes once every tab agreed.
+  let tabsClosed = false
+  win.on('close', (event) => {
+    if (tabsClosed) return
+    event.preventDefault()
+    tabs.requestCloseAll(() => {
+      tabsClosed = true
+      if (!win.isDestroyed()) win.close()
+    })
+  })
+
   win.on('closed', () => {
     tabs.destroyAll()
     if (!uiView.webContents.isDestroyed()) uiView.webContents.close()

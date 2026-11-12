@@ -10,7 +10,31 @@ export interface TestSite {
 
 const PAGES: Record<string, { title: string; body: string }> = {
   '/': { title: 'Teneke Test Page', body: '<h1>first</h1>' },
-  '/second': { title: 'Second Page', body: '<h1>second</h1>' }
+  '/second': { title: 'Second Page', body: '<h1>second</h1>' },
+  '/unsaved': {
+    title: 'Unsaved',
+    body: `<script>addEventListener('beforeunload', (e) => { e.preventDefault(); e.returnValue = '' })</script>
+      <input id="field"><p>has unsaved changes</p>`
+  },
+  // Buttons give Chromium a real user gesture (required by these permissions).
+  '/permissions': {
+    title: 'Permissions',
+    body: `
+      <button id="copy">copy</button><button id="read">read</button>
+      <button id="fullscreen">fullscreen</button><button id="lock">lock</button>
+      <script>
+        const done = (key) => (value) => { window[key] = value }
+        document.getElementById('copy').onclick = () =>
+          navigator.clipboard.writeText('teneke-e2e').then(() => 'ok', (e) => 'error:' + e.name).then(done('copy'))
+        document.getElementById('read').onclick = () =>
+          navigator.clipboard.readText().then(() => 'ok', (e) => 'error:' + e.name).then(done('read'))
+        document.getElementById('fullscreen').onclick = () =>
+          document.documentElement.requestFullscreen().then(() => 'ok', (e) => 'error:' + e.name).then(done('fullscreen'))
+        document.addEventListener('pointerlockchange', () => done('lock')(document.pointerLockElement ? 'ok' : 'released'))
+        document.addEventListener('pointerlockerror', () => done('lock')('error'))
+        document.getElementById('lock').onclick = () => document.body.requestPointerLock()
+      </script>`
+  }
 }
 
 export async function startTestSite(): Promise<TestSite> {

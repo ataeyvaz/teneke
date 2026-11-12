@@ -26,7 +26,8 @@
     "security": "electronegativity -i src -r -e 45.3.1",
     "pack": "npm run build && electron-builder --win dir",
     "test:packaged": "node scripts/check-packaged.mjs",
-    "typecheck:e2e": "tsc --noEmit -p tsconfig.e2e.json"
+    "typecheck:e2e": "tsc --noEmit -p tsconfig.e2e.json",
+    "test:compat": "electron-vite build && playwright test --config playwright.compat.config.ts"
   },
   "devDependencies": {
     "@doyensec/electronegativity": "^1.10.3",

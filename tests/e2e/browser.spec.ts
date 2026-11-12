@@ -113,4 +113,45 @@ test.describe('security', () => {
     })
     expect(result).toEqual({ geolocation: 'denied:1', notifications: 'denied' })
   })
+
+  test('owner-approved low-risk permissions work after a click; reading the clipboard stays denied', async () => {
+    // Note: this writes "teneke-e2e" to the system clipboard.
+    await typeAddress(ui, `${site.origin}/permissions`)
+    await expect.poll(() => tabUrl(app)).toBe(`${site.origin}/permissions`)
+    const result = (key: string): Promise<unknown> =>
+      content.evaluate((k) => (window as unknown as Record<string, unknown>)[k], key)
+
+    await content.click('#copy')
+    await expect.poll(() => result('copy')).toBe('ok')
+
+    await content.click('#read')
+    await expect.poll(() => result('read')).toBe('error:NotAllowedError')
+
+    await content.click('#lock')
+    await expect.poll(() => result('lock')).toBe('ok')
+    await content.evaluate(() => {
+      document.exitPointerLock()
+    })
+  })
+
+  test('HTML fullscreen hides the toolbar and fills the window; leaving restores it', async () => {
+    await typeAddress(ui, `${site.origin}/permissions`)
+    await expect.poll(() => tabUrl(app)).toBe(`${site.origin}/permissions`)
+    const windowState = (): Promise<{ fullscreen: boolean; contentTop: number }> =>
+      app.evaluate(({ BaseWindow, webContents }) => {
+        const win = BaseWindow.getAllWindows()[0]
+        const tab = webContents.getAllWebContents().find((w) => !w.getURL().startsWith('app://'))
+        const view = win?.contentView.children.find(
+          (child) => 'webContents' in child && child.webContents === tab
+        )
+        return { fullscreen: win?.isFullScreen() ?? false, contentTop: view?.getBounds().y ?? -1 }
+      })
+
+    await content.click('#fullscreen')
+    await expect.poll(windowState).toEqual({ fullscreen: true, contentTop: 0 })
+
+    await content.evaluate(() => document.exitFullscreen())
+    await expect.poll(windowState).toEqual({ fullscreen: false, contentTop: 48 })
+    await expect(ui.getByLabel('Adres çubuğu')).toBeVisible()
+  })
 })

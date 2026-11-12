@@ -133,6 +133,7 @@ Bu kurallar bir hatayı çözmek, bir özelliği çalıştırmak ya da "geçici 
 - `npm run format:check` — biçim kontrolü
 - `npm test` — Vitest birim testleri (`tests/unit/`)
 - `npm run test:e2e` — derle + Playwright uçtan uca testler (`tests/e2e/`, internetsiz yerel test sitesiyle)
+- `npm run test:compat` — gerçek sitelerle uyumluluk testi (internet gerekir; rapor + ekran görüntüleri `test-results/compat/`)
 - `npm run security` — Electronegativity taraması
 - `npm run pack` — paketlenmiş uygulama, kurulumsuz (`release/win-unpacked/Teneke.exe`), Electron Fuses çevrilmiş
 - `npm run test:packaged` — paketlenmiş uygulamayı denetle (Fuses, asar içeriği, RunAsNode, açılış/kapanış); önce `npm run pack`

@@ -1,4 +1,4 @@
-import { WebContentsView, type BaseWindow, type Rectangle, type Session } from 'electron'
+import { dialog, WebContentsView, type BaseWindow, type Rectangle, type Session } from 'electron'
 import type { TabState } from '@shared/ipc'
 import { contentWebPreferences } from '../app/web-preferences'
 import { guardWebContentNavigation } from '../app/navigation-guard'
@@ -16,13 +16,17 @@ interface Tab {
 export class TabManager implements NavigationTarget {
   private tabs: Tab[] = []
   private activeTabId: number | null = null
+  /** Called once every tab has closed after requestCloseAll(). */
+  private onAllClosed: (() => void) | null = null
   private nextId = 1
   private contentBounds: Rectangle = { x: 0, y: 0, width: 0, height: 0 }
 
   constructor(
     private readonly window: BaseWindow,
     private readonly contentSession: Session,
-    private readonly onActiveStateChange: (state: TabState) => void
+    private readonly onActiveStateChange: (state: TabState) => void,
+    /** A page entered/left HTML fullscreen (e.g. a video player). */
+    private readonly onHtmlFullscreenChange: (fullscreen: boolean) => void = () => undefined
   ) {}
 
   /** Opens `url` in a new tab and makes it active. */
@@ -48,6 +52,31 @@ export class TabManager implements NavigationTarget {
     view.webContents.on('render-process-gone', (_event, details) => {
       console.error(`[tabs] Renderer of tab ${String(tab.id)} gone:`, details.reason)
       emit()
+    })
+    // A page with a beforeunload handler ("unsaved changes") would otherwise
+    // silently block closing or navigating. Ask the user, like Chrome does.
+    view.webContents.on('will-prevent-unload', (event) => {
+      if (this.window.isDestroyed()) return
+      const choice = dialog.showMessageBoxSync(this.window, {
+        type: 'question',
+        buttons: ['Ayrıl', 'Kal'],
+        defaultId: 0,
+        cancelId: 1,
+        title: 'Bu siteden ayrılmak istiyor musunuz?',
+        message: 'Bu siteden ayrılmak istiyor musunuz?',
+        detail: 'Yaptığınız değişiklikler kaydedilmemiş olabilir.'
+      })
+      if (choice === 0) event.preventDefault() // ignore beforeunload and leave
+    })
+    view.webContents.on('enter-html-full-screen', () => {
+      if (tab.id === this.activeTabId) this.onHtmlFullscreenChange(true)
+    })
+    view.webContents.on('leave-html-full-screen', () => {
+      if (tab.id === this.activeTabId) this.onHtmlFullscreenChange(false)
+    })
+
+    view.webContents.once('destroyed', () => {
+      this.removeTab(tab)
     })
 
     this.tabs.push(tab)
@@ -87,6 +116,26 @@ export class TabManager implements NavigationTarget {
     return tab ? stateOf(tab) : null
   }
 
+  /**
+   * Closes every tab the way Chrome does when a window closes: each page gets
+   * its beforeunload ("unsaved changes?") chance first. `onAllClosed` runs only
+   * once all tabs are gone; if the user chooses to stay on a page, it never
+   * runs and the window stays open.
+   */
+  requestCloseAll(onAllClosed: () => void): void {
+    if (this.tabs.length === 0) {
+      onAllClosed()
+      return
+    }
+    this.onAllClosed = onAllClosed
+    for (const tab of [...this.tabs]) {
+      const contents = tab.view.webContents
+      if (contents.isDestroyed()) continue
+      // A crashed page cannot answer beforeunload; close it directly.
+      contents.close({ waitForBeforeUnload: !contents.isCrashed() })
+    }
+  }
+
   setBounds(bounds: Rectangle): void {
     this.contentBounds = bounds
     for (const tab of this.tabs) tab.view.setBounds(bounds)
@@ -113,6 +162,17 @@ export class TabManager implements NavigationTarget {
     }
     const active = this.activeTab()
     if (active) this.emitIfActive(active)
+  }
+
+  private removeTab(tab: Tab): void {
+    this.tabs = this.tabs.filter((t) => t.id !== tab.id)
+    if (!this.window.isDestroyed()) this.window.contentView.removeChildView(tab.view)
+    if (this.activeTabId === tab.id) this.activeTabId = this.tabs[0]?.id ?? null
+    if (this.tabs.length === 0 && this.onAllClosed) {
+      const done = this.onAllClosed
+      this.onAllClosed = null
+      done()
+    }
   }
 
   private activeTab(): Tab | undefined {

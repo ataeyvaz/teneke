@@ -41,10 +41,37 @@ describe('browser UI preferences', () => {
 })
 
 describe('permission policy', () => {
-  it.each(['media', 'geolocation', 'notifications', 'clipboard-read', 'openExternal', 'usb'])(
-    'denies %s by default',
+  it.each([
+    'media',
+    'geolocation',
+    'notifications',
+    'clipboard-read',
+    'openExternal',
+    'usb',
+    'hid',
+    'serial',
+    'display-capture',
+    'midiSysex',
+    'keyboardLock',
+    'window-management',
+    'unknown',
+    ''
+  ])('denies %s by default', (permission) => {
+    expect(decidePermission({ permission, requestingOrigin: 'https://example.com' })).toBe(false)
+  })
+
+  it.each(['fullscreen', 'clipboard-sanitized-write', 'pointerLock'])(
+    'grants low-risk %s to websites (owner-approved exception)',
     (permission) => {
-      expect(decidePermission({ permission, requestingOrigin: 'https://example.com' })).toBe(false)
+      expect(decidePermission({ permission, requestingOrigin: 'https://example.com' })).toBe(true)
+      expect(decidePermission({ permission, requestingOrigin: 'http://127.0.0.1:8080' })).toBe(true)
+    }
+  )
+
+  it.each(['app://ui', 'file:///C:/', 'chrome://settings', 'null', ''])(
+    'never grants exceptions to non-web origin %s',
+    (requestingOrigin) => {
+      expect(decidePermission({ permission: 'fullscreen', requestingOrigin })).toBe(false)
     }
   )
 })
