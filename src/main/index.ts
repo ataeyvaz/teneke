@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { app, BaseWindow } from 'electron'
+import { app, BaseWindow, Menu } from 'electron'
 import { DEFAULT_SEARCH_TEMPLATE, UI_ORIGIN } from '@shared/constants'
 import { buildDevCsp } from './app/csp'
 import { registerAppProtocol, registerAppSchemePrivileges } from './app/protocol'
@@ -76,6 +76,10 @@ if (!app.requestSingleInstanceLock()) {
     .whenReady()
     .then(() => {
       sessions.init()
+      // No default Electron menu bar (File/Edit/View/Window): its shortcuts
+      // (reload, DevTools) would bypass ours. macOS needs a menu for
+      // copy/paste, so it gets its own one later (Phase 7).
+      if (process.platform !== 'darwin') Menu.setApplicationMenu(null)
       const ui = resolveUiSource()
       prepareUiSession(ui)
       const ipc = new IpcRouter(ui.origin, DEFAULT_SEARCH_TEMPLATE)

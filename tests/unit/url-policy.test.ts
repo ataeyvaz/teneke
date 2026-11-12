@@ -3,7 +3,7 @@ import {
   classifyWebNavigation,
   isSafeExternalUrl,
   isSameOrigin,
-  sanitizeUserAgent
+  buildUserAgents
 } from '../../src/main/app/url-policy'
 
 describe('classifyWebNavigation', () => {
@@ -71,19 +71,22 @@ describe('isSameOrigin', () => {
   })
 })
 
-describe('sanitizeUserAgent', () => {
-  const electronUa =
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) teneke/0.1.0 Chrome/142.0.0.0 Electron/45.3.1 Safari/537.36'
+describe('buildUserAgents', () => {
+  const native =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) teneke/0.1.0 Chrome/156.0.8078.96 Electron/45.3.1 Safari/537.36'
+  const chromeForm =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36'
 
-  it('removes the Electron and app tokens', () => {
-    expect(sanitizeUserAgent(electronUa, 'teneke')).toBe(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36'
-    )
+  it('own identity = reduced Chromium form + our product token (like Edge)', () => {
+    expect(buildUserAgents(native, 'teneke', '0.1.0')).toEqual({
+      own: `${chromeForm} Teneke/0.1.0`,
+      chromeForm
+    })
   })
 
-  it('leaves a normal Chrome user agent unchanged', () => {
-    const chromeUa =
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36'
-    expect(sanitizeUserAgent(chromeUa, 'teneke')).toBe(chromeUa)
+  it('never contains the Electron token', () => {
+    const agents = buildUserAgents(native, 'teneke', '1.2.3')
+    expect(agents.own).not.toMatch(/Electron/)
+    expect(agents.chromeForm).not.toMatch(/Electron|teneke/i)
   })
 })

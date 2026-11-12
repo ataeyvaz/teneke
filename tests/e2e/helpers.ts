@@ -1,5 +1,8 @@
+import { mkdtempSync, rmSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { _electron as electron, type ElectronApplication, type Page } from '@playwright/test'
 
 /** Tiny local website so tests never depend on the internet. */
@@ -61,9 +64,25 @@ export async function startTestSite(): Promise<TestSite> {
   }
 }
 
-/** Launches the built app (run `electron-vite build` first; `npm run test:e2e` does). */
+/**
+ * Launches the built app (run `electron-vite build` first; `npm run test:e2e`
+ * does) with its own throw-away profile: tests never see or change the
+ * owner's real browsing data (cookies, logins), and they do not collide with
+ * a Teneke the owner has open (the single-instance lock is per profile).
+ */
 export async function launchApp(): Promise<ElectronApplication> {
-  return electron.launch({ args: ['.'], timeout: 20_000 })
+  const profile = mkdtempSync(join(tmpdir(), 'teneke-e2e-'))
+  const app = await electron.launch({ args: ['.', `--user-data-dir=${profile}`], timeout: 20_000 })
+  // 'close' fires after the app process exited, so no file is locked any more.
+  // Synchronous on purpose: the test runner may exit right after the last test.
+  app.once('close', () => {
+    try {
+      rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+    } catch (error) {
+      console.warn(`Could not remove test profile ${profile}:`, error)
+    }
+  })
+  return app
 }
 
 /** Waits until a page matching `predicate` exists and returns it. */

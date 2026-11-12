@@ -95,7 +95,8 @@ export function createMainWindow(
     () => {
       layout()
     },
-    focusAddress
+    focusAddress,
+    (url) => sessions.userAgentFor(url)
   )
   attachShortcuts(uiView.webContents, (action) => {
     tabs.runShortcut(action)
@@ -123,9 +124,19 @@ export function createMainWindow(
   layout()
   win.on('resize', layout)
 
+  // The first tab opens once the browser identity (client hints) is ready,
+  // so even the very first request carries consistent headers.
+  let homepageOpened = false
+  const openHomepage = (): void => {
+    if (homepageOpened || win.isDestroyed()) return
+    homepageOpened = true
+    tabs.openTab(DEFAULT_HOMEPAGE)
+  }
   uiView.webContents.once('did-finish-load', () => {
     // The window may have been closed while the UI was still loading.
-    if (!win.isDestroyed()) win.show()
+    if (win.isDestroyed()) return
+    win.show()
+    void sessions.applyBrowserIdentity(uiView.webContents).finally(openHomepage)
   })
   // The UI may (re)load after the first tab already reported its state.
   uiView.webContents.on('did-finish-load', () => {
@@ -141,9 +152,8 @@ export function createMainWindow(
     if (win.isDestroyed()) return
     console.error('[window] Failed to load browser UI:', error)
     win.show()
+    openHomepage()
   })
-
-  tabs.openTab(DEFAULT_HOMEPAGE)
 
   // WebContentsViews are not destroyed with their window; close them explicitly.
   // Closing the window first closes the tabs (giving pages their beforeunload

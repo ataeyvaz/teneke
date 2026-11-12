@@ -42,7 +42,9 @@ export class TabManager implements NavigationTarget {
     /** The active tab started/stopped showing the error page (layout changes). */
     private readonly onErrorPageChange: () => void = () => undefined,
     /** A shortcut asked to focus the address bar (a UI concern). */
-    private readonly onFocusAddress: () => void = () => undefined
+    private readonly onFocusAddress: () => void = () => undefined,
+    /** The user agent a site gets (SessionManager.userAgentFor). */
+    private readonly userAgentFor: ((url: string) => string) | null = null
   ) {}
 
   /** Opens `url` in a new tab and makes it active. */
@@ -103,6 +105,16 @@ export class TabManager implements NavigationTarget {
         detail: 'Yaptığınız değişiklikler kaydedilmemiş olabilir.'
       })
       if (choice === 0) event.preventDefault() // ignore beforeunload and leave
+    })
+    // Per-site identity: choose the site's user agent before each main-frame
+    // navigation, so the page's navigator.userAgent matches its requests.
+    view.webContents.on('will-navigate', (details) => {
+      this.applyUserAgent(view.webContents, details.url)
+    })
+    view.webContents.on('did-start-navigation', (details) => {
+      if (details.isMainFrame && !details.isSameDocument) {
+        this.applyUserAgent(view.webContents, details.url)
+      }
     })
     attachShortcuts(view.webContents, (action) => {
       this.runShortcut(action)
@@ -287,7 +299,14 @@ export class TabManager implements NavigationTarget {
     this.onActiveStateChange(stateOf(tab))
   }
 
+  private applyUserAgent(contents: Electron.WebContents, url: string): void {
+    if (!this.userAgentFor || contents.isDestroyed() || url.startsWith('chrome-error://')) return
+    const userAgent = this.userAgentFor(url)
+    if (contents.getUserAgent() !== userAgent) contents.setUserAgent(userAgent)
+  }
+
   private load(view: WebContentsView, url: string): void {
+    this.applyUserAgent(view.webContents, url)
     view.webContents.loadURL(url).catch((error: unknown) => {
       // ERR_ABORTED (-3) is normal: the user navigated again before the load
       // finished, or a guard blocked a redirect. Anything else is logged.

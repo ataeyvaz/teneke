@@ -1,3 +1,4 @@
+import type { UserAgents } from '../sessions/site-identity'
 /**
  * Pure URL rules for navigation and external links. No Electron imports, so
  * everything here is unit tested.
@@ -95,15 +96,38 @@ export function resolveAddressInput(rawInput: string, searchTemplate: string): s
 }
 
 /**
- * Removes the "Electron/x.y.z" and app name tokens from the default user agent
- * so sites treat us as a regular Chromium browser (Google sign-in and others
- * block embedded-browser user agents).
+ * Teneke's own user agent, built like Microsoft Edge's: the Chromium form
+ * with a reduced version, plus our own product token at the end
+ * ("... Chrome/156.0.0.0 Safari/537.36 Teneke/0.1.0"). The Electron and
+ * lower-case app tokens are removed (WhatsApp Web and others reject
+ * "Electron"); the Teneke token keeps it honest - Google sign-in rejects
+ * user agents that are indistinguishable from stock Chrome.
  */
-export function sanitizeUserAgent(userAgent: string, appName: string): string {
+export function buildUserAgents(
+  nativeUserAgent: string,
+  appName: string,
+  version: string
+): UserAgents {
   const escaped = appName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return userAgent
+  const base = nativeUserAgent
     .replace(/\sElectron\/\S+/g, '')
     .replace(new RegExp(`\\s${escaped}/\\S+`, 'gi'), '')
+    .replace(/\bChrome\/(\d+)(?:\.\d+){1,3}\b/, 'Chrome/$1.0.0.0')
     .replace(/\s{2,}/g, ' ')
     .trim()
+  return { own: `${base} Teneke/${version}`, chromeForm: base }
+}
+
+/**
+ * Language list for session.setUserAgent() that matches navigator.languages:
+ * ["tr", "en-US"] -> "tr,en-US". Chromium adds the q= weights itself
+ * (the header becomes "tr,en-US;q=0.9"), so none are added here.
+ */
+export function buildAcceptLanguages(languages: readonly string[]): string {
+  const tags: string[] = []
+  for (const tag of languages) {
+    if (/^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$/.test(tag) && !tags.includes(tag)) tags.push(tag)
+  }
+  if (tags.length === 0) tags.push('en-US')
+  return tags.slice(0, 10).join(',')
 }
