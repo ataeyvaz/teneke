@@ -10,7 +10,9 @@ export const IpcChannel = {
   forward: 'nav:forward',
   reload: 'nav:reload',
   stop: 'nav:stop',
-  tabState: 'tab:state'
+  tabState: 'tab:state',
+  /** main -> UI: focus and select the address bar (Ctrl+L, F6, Alt+D). */
+  focusAddress: 'ui:focus-address'
 } as const
 
 /** Upper bound for anything typed into the address bar. */

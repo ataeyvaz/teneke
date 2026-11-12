@@ -18,8 +18,16 @@ const EMPTY_STATE: TabState = {
 
 export function App(): React.JSX.Element {
   const [tab, setTab] = useState<TabState>(EMPTY_STATE)
+  const [focusToken, setFocusToken] = useState(0)
 
   useEffect(() => window.teneke.onTabState(setTab), [])
+  useEffect(
+    () =>
+      window.teneke.onFocusAddress(() => {
+        setFocusToken((token) => token + 1)
+      }),
+    []
+  )
 
   useEffect(() => {
     document.title = windowTitle(tab.title)
@@ -65,7 +73,7 @@ export function App(): React.JSX.Element {
             <path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" />
           </NavButton>
         )}
-        <AddressBar url={tab.url} title={tab.title} />
+        <AddressBar url={tab.url} title={tab.title} focusToken={focusToken} />
         {tab.isLoading && (
           <div
             role="progressbar"

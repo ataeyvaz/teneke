@@ -24,6 +24,17 @@ const api = {
   reload: (): Promise<void> => invoke(IpcChannel.reload),
   stop: (): Promise<void> => invoke(IpcChannel.stop),
 
+  /** Subscribe to "focus the address bar" requests (keyboard shortcuts). */
+  onFocusAddress: (listener: () => void): (() => void) => {
+    const handler = (): void => {
+      listener()
+    }
+    ipcRenderer.on(IpcChannel.focusAddress, handler)
+    return () => {
+      ipcRenderer.removeListener(IpcChannel.focusAddress, handler)
+    }
+  },
+
   /** Subscribe to active tab updates. Returns an unsubscribe function. */
   onTabState: (listener: (state: TabState) => void): (() => void) => {
     // Strip the Electron event object: the UI only ever receives plain data.

@@ -6,6 +6,7 @@ import type { IpcRouter } from '../ipc/IpcRouter'
 import type { SessionManager } from '../sessions/SessionManager'
 import { TabManager } from '../tabs/TabManager'
 import { buildContextMenu } from './context-menu'
+import { attachShortcuts } from './shortcuts'
 import { guardUiNavigation } from './navigation-guard'
 import { uiWebPreferences } from './web-preferences'
 
@@ -80,12 +81,29 @@ export function createMainWindow(
     layout()
   }
 
-  const tabs = new TabManager(win, sessions.contentSession, sendTabState, setHtmlFullscreen, () => {
-    layout()
+  const focusAddress = (): void => {
+    if (win.isDestroyed() || htmlFullscreen || uiView.webContents.isDestroyed()) return
+    uiView.webContents.focus()
+    uiView.webContents.send(IpcChannel.focusAddress)
+  }
+
+  const tabs = new TabManager(
+    win,
+    sessions.contentSession,
+    sendTabState,
+    setHtmlFullscreen,
+    () => {
+      layout()
+    },
+    focusAddress
+  )
+  attachShortcuts(uiView.webContents, (action) => {
+    tabs.runShortcut(action)
   })
   ipc.attach(uiView.webContents, tabs)
 
   const layout = (): void => {
+    if (win.isDestroyed()) return
     const { width, height } = win.getContentBounds()
     if (htmlFullscreen) {
       tabs.setBounds({ x: 0, y: 0, width, height })
@@ -106,10 +124,12 @@ export function createMainWindow(
   win.on('resize', layout)
 
   uiView.webContents.once('did-finish-load', () => {
-    win.show()
+    // The window may have been closed while the UI was still loading.
+    if (!win.isDestroyed()) win.show()
   })
   // The UI may (re)load after the first tab already reported its state.
   uiView.webContents.on('did-finish-load', () => {
+    if (win.isDestroyed()) return
     const state = tabs.activeState()
     if (state) sendTabState(state)
   })

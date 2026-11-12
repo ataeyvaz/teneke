@@ -10,6 +10,7 @@ import {
 import type { TabLoadError, TabState } from '@shared/ipc'
 import { contentWebPreferences } from '../app/web-preferences'
 import { buildContextMenu } from '../app/context-menu'
+import { attachShortcuts, type ShortcutAction } from '../app/shortcuts'
 import { guardWebContentNavigation } from '../app/navigation-guard'
 import type { NavigationTarget } from '../ipc/IpcRouter'
 
@@ -39,7 +40,9 @@ export class TabManager implements NavigationTarget {
     /** A page entered/left HTML fullscreen (e.g. a video player). */
     private readonly onHtmlFullscreenChange: (fullscreen: boolean) => void = () => undefined,
     /** The active tab started/stopped showing the error page (layout changes). */
-    private readonly onErrorPageChange: () => void = () => undefined
+    private readonly onErrorPageChange: () => void = () => undefined,
+    /** A shortcut asked to focus the address bar (a UI concern). */
+    private readonly onFocusAddress: () => void = () => undefined
   ) {}
 
   /** Opens `url` in a new tab and makes it active. */
@@ -67,6 +70,8 @@ export class TabManager implements NavigationTarget {
     // an error: the user navigated again or a guard blocked a redirect.
     view.webContents.on('did-fail-load', (_event, code, description, failedUrl, isMainFrame) => {
       if (!isMainFrame || code === -3) return
+      // Loads are aborted while the window closes; never touch dying views then.
+      if (this.onAllClosed || this.window.isDestroyed() || view.webContents.isDestroyed()) return
       tab.error = { code, description, url: failedUrl }
       this.applyVisibility()
       emit()
@@ -98,6 +103,9 @@ export class TabManager implements NavigationTarget {
         detail: 'Yaptığınız değişiklikler kaydedilmemiş olabilir.'
       })
       if (choice === 0) event.preventDefault() // ignore beforeunload and leave
+    })
+    attachShortcuts(view.webContents, (action) => {
+      this.runShortcut(action)
     })
     view.webContents.on('context-menu', (_event, params) => {
       if (this.window.isDestroyed()) return
@@ -149,6 +157,30 @@ export class TabManager implements NavigationTarget {
   navigateActive(url: string): void {
     const tab = this.activeTab()
     if (tab) this.load(tab.view, url)
+  }
+
+  /** Keyboard shortcut dispatch (from the page or from the toolbar). */
+  runShortcut(action: ShortcutAction): void {
+    switch (action) {
+      case 'back':
+        this.goBack()
+        break
+      case 'forward':
+        this.goForward()
+        break
+      case 'reload':
+        this.reload()
+        break
+      case 'reloadIgnoringCache':
+        this.activeTab()?.view.webContents.reloadIgnoringCache()
+        break
+      case 'stop':
+        this.stop()
+        break
+      case 'focusAddress':
+        this.onFocusAddress()
+        break
+    }
   }
 
   goBack(): void {
@@ -221,6 +253,7 @@ export class TabManager implements NavigationTarget {
   /** Only the active tab is visible, and not while it shows the error page. */
   private applyVisibility(): void {
     for (const tab of this.tabs) {
+      if (tab.view.webContents.isDestroyed()) continue
       tab.view.setVisible(tab.id === this.activeTabId && tab.error === null)
     }
     this.onErrorPageChange()

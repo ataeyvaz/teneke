@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { MAX_ADDRESS_INPUT_LENGTH } from '@shared/ipc'
+import { completeWithCom } from '../lib/address'
 import { addressBarLabel, securityOf } from '../lib/display'
 import { run } from '../lib/ipc'
 
 interface AddressBarProps {
   url: string
   title: string
+  /** Changes whenever the main process asks to focus the address bar. */
+  focusToken: number
 }
 
 /**
@@ -13,28 +16,21 @@ interface AddressBarProps {
  * while focused. Enter sends the text to the main process, which decides
  * whether it is a URL or a search (the UI never builds URLs itself).
  */
-export function AddressBar({ url, title }: AddressBarProps): React.JSX.Element {
+export function AddressBar({ url, title, focusToken }: AddressBarProps): React.JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState<string | null>(null)
   const editing = draft !== null
   const security = securityOf(url)
 
-  // Ctrl+L focuses the address bar.
+  // Ctrl+L / F6 / Alt+D are handled in the main process (they must also work
+  // while a website has the focus); it asks us to focus the address bar.
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.ctrlKey && event.key.toLowerCase() === 'l') {
-        event.preventDefault()
-        inputRef.current?.focus()
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-    }
-  }, [])
+    if (focusToken > 0) inputRef.current?.focus()
+  }, [focusToken])
 
-  const submit = (): void => {
-    const text = (draft ?? '').trim()
+  const submit = (complete = false): void => {
+    const typed = (draft ?? '').trim()
+    const text = complete ? completeWithCom(typed) : typed
     if (text !== '') run('navigate', window.teneke.navigate(text))
     inputRef.current?.blur()
   }
@@ -81,6 +77,11 @@ export function AddressBar({ url, title }: AddressBarProps): React.JSX.Element {
         }}
         onKeyDown={(event) => {
           if (event.key === 'Escape') inputRef.current?.blur()
+          // Ctrl+Enter: "google" -> www.google.com
+          if (event.key === 'Enter' && event.ctrlKey) {
+            event.preventDefault()
+            submit(true)
+          }
         }}
       />
     </form>

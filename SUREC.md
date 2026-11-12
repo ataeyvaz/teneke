@@ -3,7 +3,7 @@
 Bu dosya projenin hafızasıdır. Claude her oturumun başında okur, her görev bitince günceller.
 
 **Şu anki faz:** Faz 2 — Erken uyumluluk testleri
-**Sıradaki görev:** Faz 2 — temel kısayollar (Sonnet, kullanıcı onayı bekleniyor), sonra C: Google/Cloudflare kimlik araştırması (Opus, önce araştırma), sonra D
+**Sıradaki görev:** Faz 2 — C: Google/Cloudflare kimlik araştırması (Opus, önce araştırma), sonra D
 
 ---
 
@@ -129,7 +129,8 @@ Her fazın sonunda:
 - Google girişi "Bu tarayıcı güvenli olmayabilir" diyor; krunker.io'da Cloudflare doğrulaması başarısız. Olası neden: Electron'un tarayıcı kimliği (UA + `Sec-CH-UA` istemci ipuçları) gerçek Chrome ile tutarsız ve gömülü tarayıcı gibi görünüyor. Araştırılacak (taklit/kimlik konusu güvenlik ve dürüstlük açısından ayrıca değerlendirilecek).
 - ~~Sağ tık menüsü yok~~ — eklendi (2026-11-12): sayfa (Geri/İleri/Yenile), seçili metin, bağlantı adresini kopyala, resmi kaydet/adresini kopyala, düzenlenebilir alanlar ve adres çubuğu. "Bağlantıyı yeni sekmede aç" Faz 3'te.
 - Instagram girişi (`accounts.meta.com`) Windows Güvenliği "geçiş anahtarı / güvenlik anahtarı" penceresi açıyor (WebAuthn). Teneke bunu Windows'a iletiyor; İptal denebilir. Geçiş anahtarının izinli olup olmayacağına Faz 3 izin yöneticisinde karar verilecek.
-- Temel kısayollar (F5, Ctrl+R, Alt+←/→, Esc) sayfa odaktayken çalışmıyor; küçük bir adımla eklenecek. Sekme/arama kısayolları (Ctrl+T/W/Tab/Shift+T/F) Faz 3'te.
+- ~~Temel kısayollar~~ — eklendi (2026-11-12): F5/Ctrl+R yenile, Ctrl+Shift+R/Ctrl+F5 önbelleksiz yenile, Alt+←/→ geri/ileri, Esc (yüklenirken) durdur, Ctrl+L/F6/Alt+D adres çubuğu; sayfa odaktayken de çalışır. Ctrl+Enter: "google" → www.google.com. Sekme/arama kısayolları (Ctrl+T/W/Tab/Shift+T/F) Faz 3'te.
+- Düzeltildi (2026-11-12): pencere, arayüz yüklenmeden (gizliyken) kapanırsa `win.show()` yok edilmiş pencereye dokunup "Object has been destroyed" hata kutusu çıkarıyordu (yalnızca testlerde, program kapatınca). Korumalar eklendi.
 - Kamera/mikrofon reddediliyor (WhatsApp görüntülü arama "izin verin" diyor) — beklenen, izin sorma arayüzü Faz 3.
 - krunker.io'da yükleme çubuğu durmadan dönüyor (sayfa sürekli yeniden yükleniyor olabilir — Cloudflare döngüsü); poki.com'da reklamın "geç" düğmesi görünmüyor. İncelenecek.
 - Uyumluluk testinde 18 ağır site sonrası kapanış 20 sn'yi aşabiliyor (test uyarı verip süreci sonlandırıyor). Elle kullanımda kalan süreç **yok** (kullanıcı Görev Yöneticisi'nde doğruladı, 2026-11-12) — yalnızca test ortamına özgü görünüyor.
