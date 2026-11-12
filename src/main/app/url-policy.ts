@@ -55,6 +55,45 @@ export function isSameOrigin(raw: string, allowedOrigin: string): boolean {
   return url.protocol === allowed.protocol && url.host === allowed.host
 }
 
+// host[:port][/path...] where host is localhost, an IPv4 address, a bracketed
+// IPv6 address, or a dotted domain whose last label is a real-looking TLD.
+const LOCAL_HOST = String.raw`localhost|\d{1,3}(?:\.\d{1,3}){3}|\[[0-9a-f:.]+\]`
+const DOMAIN = String.raw`(?:[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?\.)+(?:\p{L}{2,63}|xn--[a-z0-9-]{1,59})`
+const HOST_LIKE = new RegExp(
+  String.raw`^(?:(${LOCAL_HOST})|${DOMAIN})(?::\d{1,5})?(?:[/?#]\S*)?$`,
+  'iu'
+)
+
+/**
+ * Turns address bar input into a URL to load.
+ *  - full http(s) URLs are used as-is
+ *  - host-like input ("example.com", "localhost:3000/x") gets a scheme
+ *    (https for domains, http for localhost / IP addresses)
+ *  - anything else, including dangerous schemes such as javascript: or
+ *    file:, becomes a search query. Input is never executed.
+ */
+export function resolveAddressInput(rawInput: string, searchTemplate: string): string {
+  const input = rawInput.trim()
+  const search = (): string => searchTemplate.replace('%s', encodeURIComponent(input))
+
+  if (input === '' || /\s/.test(input)) return search()
+  if (input === 'about:blank') return input
+
+  if (/^https?:\/\//i.test(input)) {
+    const url = parseUrl(input)
+    return url && classifyWebNavigation(url.href) === 'allow' ? url.href : search()
+  }
+
+  const hostMatch = HOST_LIKE.exec(input)
+  if (hostMatch) {
+    const scheme = hostMatch[1] ? 'http' : 'https'
+    const url = parseUrl(`${scheme}://${input}`)
+    if (url && classifyWebNavigation(url.href) === 'allow') return url.href
+  }
+
+  return search()
+}
+
 /**
  * Removes the "Electron/x.y.z" and app name tokens from the default user agent
  * so sites treat us as a regular Chromium browser (Google sign-in and others

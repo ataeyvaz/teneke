@@ -1,9 +1,10 @@
 import { join } from 'node:path'
 import { app, BaseWindow } from 'electron'
-import { UI_ORIGIN } from '@shared/constants'
+import { DEFAULT_SEARCH_TEMPLATE, UI_ORIGIN } from '@shared/constants'
 import { buildDevCsp } from './app/csp'
 import { registerAppProtocol, registerAppSchemePrivileges } from './app/protocol'
 import { createMainWindow, type UiSource } from './app/window'
+import { IpcRouter } from './ipc/IpcRouter'
 import { PermissionManager } from './permissions/PermissionManager'
 import { SessionManager } from './sessions/SessionManager'
 
@@ -74,11 +75,13 @@ if (!app.requestSingleInstanceLock()) {
       sessions.init()
       const ui = resolveUiSource()
       prepareUiSession(ui)
-      createMainWindow(sessions, ui)
+      const ipc = new IpcRouter(ui.origin, DEFAULT_SEARCH_TEMPLATE)
+      ipc.register()
+      createMainWindow(sessions, ipc, ui)
 
       // macOS: re-create a window when the dock icon is clicked.
       app.on('activate', () => {
-        if (BaseWindow.getAllWindows().length === 0) createMainWindow(sessions, ui)
+        if (BaseWindow.getAllWindows().length === 0) createMainWindow(sessions, ipc, ui)
       })
     })
     .catch((error: unknown) => {

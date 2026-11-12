@@ -1,6 +1,8 @@
 import { join } from 'node:path'
 import { BaseWindow, WebContentsView } from 'electron'
 import { DEFAULT_HOMEPAGE, TOOLBAR_HEIGHT } from '@shared/constants'
+import { IpcChannel, type TabState } from '@shared/ipc'
+import type { IpcRouter } from '../ipc/IpcRouter'
 import type { SessionManager } from '../sessions/SessionManager'
 import { TabManager } from '../tabs/TabManager'
 import { guardUiNavigation } from './navigation-guard'
@@ -20,7 +22,11 @@ export interface UiSource {
  *  - web content views (sites, managed by TabManager, separate session)
  * Web content never runs in the UI renderer (CLAUDE.md section 4).
  */
-export function createMainWindow(sessions: SessionManager, ui: UiSource): BaseWindow {
+export function createMainWindow(
+  sessions: SessionManager,
+  ipc: IpcRouter,
+  ui: UiSource
+): BaseWindow {
   const win = new BaseWindow({
     width: 1280,
     height: 800,
@@ -41,7 +47,11 @@ export function createMainWindow(sessions: SessionManager, ui: UiSource): BaseWi
   guardUiNavigation(uiView.webContents, ui.origin)
   win.contentView.addChildView(uiView)
 
-  const tabs = new TabManager(win, sessions.contentSession)
+  const sendTabState = (state: TabState): void => {
+    if (!uiView.webContents.isDestroyed()) uiView.webContents.send(IpcChannel.tabState, state)
+  }
+  const tabs = new TabManager(win, sessions.contentSession, sendTabState)
+  ipc.attach(uiView.webContents, tabs)
 
   const layout = (): void => {
     const { width, height } = win.getContentBounds()
@@ -58,6 +68,11 @@ export function createMainWindow(sessions: SessionManager, ui: UiSource): BaseWi
 
   uiView.webContents.once('did-finish-load', () => {
     win.show()
+  })
+  // The UI may (re)load after the first tab already reported its state.
+  uiView.webContents.on('did-finish-load', () => {
+    const state = tabs.activeState()
+    if (state) sendTabState(state)
   })
   uiView.webContents.on('render-process-gone', (_event, details) => {
     console.error('[window] UI renderer gone:', details.reason)
