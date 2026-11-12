@@ -36,6 +36,8 @@ test('address bar navigates, shows the title, and back/forward work', async () =
   await typeAddress(ui, `${site.origin}/`)
   await expect(content).toHaveURL(`${site.origin}/`)
   await expect(ui.getByLabel('Adres çubuğu')).toHaveValue('Teneke Test Page')
+  // Hover tooltip shows the full address.
+  await expect(ui.getByLabel('Adres çubuğu')).toHaveAttribute('title', `${site.origin}/`)
 
   await typeAddress(ui, `${site.origin}/second`)
   await expect(content).toHaveURL(`${site.origin}/second`)

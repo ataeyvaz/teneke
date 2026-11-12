@@ -62,6 +62,8 @@ export function AddressBar({ url, title, focusToken }: AddressBarProps): React.J
         autoComplete="off"
         maxLength={MAX_ADDRESS_INPUT_LENGTH}
         aria-label="Adres çubuğu"
+        // Hovering shows the full address while the bar displays the title.
+        title={editing || url === '' ? undefined : url}
         placeholder="Ara ya da adres yaz"
         className="min-w-0 flex-1 bg-transparent text-sm text-neutral-100 outline-none placeholder:text-neutral-500"
         value={editing ? draft : addressBarLabel(url, title)}

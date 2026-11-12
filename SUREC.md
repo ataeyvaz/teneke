@@ -84,6 +84,7 @@ Hedef: Büyük sorunları erken yakalamak.
 - [ ] Ekran görüntüsü alma ve koleksiyonu
 - [ ] Yapay zeka asistanı (sayfa özeti vb.)
 - [ ] Tema ve görsel kimlik
+- [ ] Adres çubuğunu pencerenin altına taşıma seçeneği (kullanıcı fikri 2026-11-12)
 - [ ] (Yeni fikirler buraya)
 
 ## Faz 7 — Uyumluluk genişletme ve platformlar
