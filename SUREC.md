@@ -3,7 +3,7 @@
 Bu dosya projenin hafızasıdır. Claude her oturumun başında okur, her görev bitince günceller.
 
 **Şu anki faz:** Faz 2 — Erken uyumluluk testleri
-**Sıradaki görev:** Faz 2 — C: Google/Cloudflare kimlik araştırması (Opus, önce araştırma), sonra D
+**Sıradaki görev:** Faz 2 — (küçük, onay bekliyor: adres çubuğu boştayken başlık yerine alan adı göstersin — başlık taklidi riski; şu an başlık gösteriliyor) ve C: Google/Cloudflare kimlik araştırması (Opus, önce araştırma), sonra D
 
 ---
 
