@@ -1,12 +1,67 @@
-import { app, BrowserWindow } from 'electron'
-import { createMainWindow } from './app/window'
+import { join } from 'node:path'
+import { app, BaseWindow } from 'electron'
+import { UI_ORIGIN } from '@shared/constants'
+import { buildDevCsp } from './app/csp'
+import { registerAppProtocol, registerAppSchemePrivileges } from './app/protocol'
+import { createMainWindow, type UiSource } from './app/window'
+import { PermissionManager } from './permissions/PermissionManager'
+import { SessionManager } from './sessions/SessionManager'
 
-// Only one browser instance at a time; a second launch focuses the first window.
+// --- Must happen before 'ready' -------------------------------------------
+// Every renderer is sandboxed, even if a view forgets to ask for it.
+app.enableSandbox()
+registerAppSchemePrivileges()
+
+// Safety net for ANY web contents (including ones we did not create on purpose):
+// no <webview> tags, no native pop-up windows. Views override the window
+// open handler with their own (stricter or tab-opening) rules.
+app.on('web-contents-created', (_event, contents) => {
+  contents.on('will-attach-webview', (event) => {
+    event.preventDefault()
+    console.warn('[security] Blocked <webview> attachment')
+  })
+  contents.setWindowOpenHandler(() => ({ action: 'deny' }))
+})
+
+// Certificate errors are NOT overridden: without preventDefault Electron
+// rejects the connection. We only log it. (Warning page: Phase 4.)
+app.on('certificate-error', (_event, _contents, url, error) => {
+  console.warn(`[security] Certificate error for ${url}: ${error}`)
+})
+
+const sessions = new SessionManager(new PermissionManager())
+
+function resolveUiSource(): UiSource {
+  const devServerUrl = process.env['ELECTRON_RENDERER_URL']
+  if (!app.isPackaged && devServerUrl) {
+    return { url: devServerUrl, origin: new URL(devServerUrl).origin, isDev: true }
+  }
+  return { url: `${UI_ORIGIN}/index.html`, origin: UI_ORIGIN, isDev: false }
+}
+
+function prepareUiSession(ui: UiSource): void {
+  if (ui.isDev) {
+    // Dev server responses get the (slightly relaxed) dev CSP as a header.
+    const csp = buildDevCsp(ui.origin)
+    sessions.uiSession.webRequest.onHeadersReceived(
+      { urls: [`${ui.origin}/*`] },
+      (details, callback) => {
+        callback({
+          responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [csp] }
+        })
+      }
+    )
+  } else {
+    registerAppProtocol(sessions.uiSession, join(__dirname, '../renderer'))
+  }
+}
+
+// --- Single instance --------------------------------------------------------
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   app.on('second-instance', () => {
-    const [win] = BrowserWindow.getAllWindows()
+    const [win] = BaseWindow.getAllWindows()
     if (win) {
       if (win.isMinimized()) win.restore()
       win.focus()
@@ -16,11 +71,14 @@ if (!app.requestSingleInstanceLock()) {
   app
     .whenReady()
     .then(() => {
-      createMainWindow()
+      sessions.init()
+      const ui = resolveUiSource()
+      prepareUiSession(ui)
+      createMainWindow(sessions, ui)
 
       // macOS: re-create a window when the dock icon is clicked.
       app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) createMainWindow()
+        if (BaseWindow.getAllWindows().length === 0) createMainWindow(sessions, ui)
       })
     })
     .catch((error: unknown) => {

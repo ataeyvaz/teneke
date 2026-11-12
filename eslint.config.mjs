@@ -28,6 +28,10 @@ export default tseslint.config(
     rules: {
       // Project rules (CLAUDE.md section 8): no widespread `any`, no swallowed errors.
       '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }
+      ],
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',

@@ -1,8 +1,12 @@
+// Temporary toolbar placeholder. The address bar and navigation buttons
+// arrive in Phase 1, part 5.
 export function App(): React.JSX.Element {
   return (
-    <main className="flex h-screen flex-col items-center justify-center gap-2 bg-neutral-900 text-neutral-100">
-      <h1 className="text-3xl font-semibold">Teneke</h1>
-      <p className="text-sm text-neutral-400">Güvenli iskelet hazır ({window.teneke.platform})</p>
-    </main>
+    <header className="flex h-screen items-center gap-3 border-b border-neutral-800 bg-neutral-900 px-4 text-neutral-100">
+      <span className="text-lg font-semibold">Teneke</span>
+      <span className="text-xs text-neutral-500">
+        Güvenli iskelet · adres çubuğu yakında ({window.teneke.platform})
+      </span>
+    </header>
   )
 }

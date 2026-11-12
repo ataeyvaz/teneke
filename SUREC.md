@@ -3,7 +3,7 @@
 Bu dosya projenin hafızasıdır. Claude her oturumun başında okur, her görev bitince günceller.
 
 **Şu anki faz:** Faz 1 — Güvenli iskelet
-**Sıradaki görev:** Faz 1 / Parça 3 — Güvenli pencere mimarisi (WebContentsView, güvenlik ayarları, app://, izin/gezinme kontrolü) 🔴 **Opus'a geç** (`/model`)
+**Sıradaki görev:** Faz 1 / Parça 4 — IPC + preload (gönderen doğrulama, zod ile girdi doğrulama; zod için kullanıcı onayı al) 🔴 Opus
 
 ---
 
@@ -17,7 +17,7 @@ Bu dosya projenin hafızasıdır. Claude her oturumun başında okur, her görev
 
 ## Faz 1 — Güvenli iskelet
 
-Uygulama parçaları (model önerisi): 1 Git+iskelet 🟢 ✅ · 2 Araçlar 🟢 ✅ · 3 Güvenli pencere mimarisi 🔴 Opus · 4 IPC+preload 🔴 Opus · 5 Arayüz (adres çubuğu, gezinme düğmeleri) 🟢 · 6 Fuses+denetim+e2e 🔴 Opus
+Uygulama parçaları (model önerisi): 1 Git+iskelet 🟢 ✅ · 2 Araçlar 🟢 ✅ · 3 Güvenli pencere mimarisi 🔴 Opus ✅ · 4 IPC+preload 🔴 Opus · 5 Arayüz (adres çubuğu, gezinme düğmeleri) 🟢 · 6 Fuses+denetim+e2e 🔴 Opus
 
 Hedef: Açılan, siteleri gösteren, güvenlik ayarları ilk günden doğru kurulmuş bir pencere.
 
@@ -25,8 +25,8 @@ Hedef: Açılan, siteleri gösteren, güvenlik ayarları ilk günden doğru kuru
 - [x] electron-vite + React + TypeScript (strict) + Tailwind proje iskeleti
 - [x] ESLint, Prettier, Vitest, Playwright kurulumu ve npm script'leri
 - [x] CLAUDE.md "Komutlar" bölümünü gerçek komutlarla güncelle
-- [ ] Ana pencere: arayüz için ayrı view, web içeriği için WebContentsView
-- [ ] Tüm güvenlik ayarları (CLAUDE.md Bölüm 5) + Electron Fuses
+- [x] Ana pencere: arayüz için ayrı view, web içeriği için WebContentsView
+- [ ] Tüm güvenlik ayarları (CLAUDE.md Bölüm 5) + Electron Fuses — webPreferences, app://, CSP başlığı, izinler (varsayılan red), gezinme/pop-up/webview koruması, openExternal filtresi ✅; IPC (Parça 4) ve Fuses (Parça 6) kaldı
 - [ ] Adres çubuğu: URL'ye git, URL değilse arama yap (varsayılan arama motoru ayarlanabilir olacak şekilde)
 - [ ] Geri, ileri, yenile, durdur
 - [ ] Sayfa başlığı ve yükleniyor göstergesi
@@ -75,6 +75,7 @@ Hedef: Büyük sorunları erken yakalamak.
 
 ## Faz 6 — Farklılaşma (bize özgü özellikler)
 
+- [ ] DuckDuckGo tarayıcısındaki özelliklerden esinlenenler (kullanıcı isteği 2026-11-12; hangileri olacağı netleştirilecek)
 - [ ] Bölünmüş ekran
 - [ ] Okuma listesi
 - [ ] Ekran görüntüsü alma ve koleksiyonu
@@ -111,22 +112,28 @@ Her fazın sonunda:
 
 ## Bilinen Sorunlar
 
-- Parça 1 iskeletindeki CSP (`src/renderer/index.html`) geçici: `style-src 'unsafe-inline'` ve geliştirme modu için `ws://localhost`. Parça 3'te `app://` protokolü ve başlık tabanlı CSP ile sıkılaştırılacak.
-- `src/main/app/window.ts` geçici tek pencere; Parça 3'te ayrı WebContentsView mimarisiyle değişecek.
-
-- Electronegativity taraması şu an 5 bulgu veriyor (gezinme sınırı, izin işleyicisi, preload incelemesi, CSP, auxclick). Hepsi Parça 3–4'te çözülecek; Faz 1 sonunda temiz olmalı.
+- Electronegativity: 3 "TENTATIVE / incelenmeli" bulgu kaldı, hepsi incelendi ve kabul edildi: (1) CSP_GLOBAL_CHECK `src/main/index.ts` — geliştirme CSP'sindeki `unsafe-inline` (yalnızca dev; üretim CSP'si sıkı), (2) CERTIFICATE_ERROR_EVENT — handler sadece logluyor, `preventDefault` yok → bağlantı reddediliyor, (3) OPEN_EXTERNAL — `isSafeExternalUrl` ile doğrulanıyor.
+- **Tüm izinler reddediliyor** (tam ekran, panoya kopyalama dahil). YouTube tam ekran ve sitelerdeki "kopyala" düğmeleri şu an çalışmaz. Faz 2'de uyumluluk testinde ele alınacak; izin sorma arayüzü Faz 3.
+- Açılır pencereler (`target=_blank`, `window.open`) şimdilik aynı sekmede açılıyor; Faz 3'te yeni sekmede açılacak.
+- Playwright `_electron.launch` uygulamanın sayfalarını görmedi (BaseWindow + WebContentsView). Parça 6'da ilk e2e testte çözülecek. Doğrulama şimdilik `--remote-debugging-port` + CDP ile yapıldı.
+- Sertifika hatası olan sitelerde bağlantı reddediliyor ama kullanıcıya uyarı sayfası yok (Faz 4).
+- ~~Pencere kapanırken "Object has been destroyed" hata kutusu~~ — düzeltildi (2026-11-12): `TabManager.destroyAll()` artık yok edilmiş pencereye dokunmuyor. Kapanış e2e testi Parça 6'ya eklenecek.
 - Electronegativity bakımı yavaş (son sürüm 2023-03) ve kurulum bağımlılığı `tar` için `npm audit` "critical" gösteriyor. Yalnızca geliştirme aracı, uygulamaya girmiyor. `npm audit fix --force` ÇALIŞTIRMA. Alternatif ileride değerlendirilebilir.
 - `npm audit` ayrıca eslint/typescript-eslint zincirinde `minimatch` kaynaklı orta seviye uyarılar veriyor (yalnızca geliştirme aracı).
 
 ## Karar Günlüğü
 
-| Tarih      | Karar                                                                                                  | Neden                                                                                                                    |
-| ---------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| —          | Electron + TypeScript seçildi                                                                          | Chromium uyumluluğu, güvenlik yamalarının hızlı gelmesi, çapraz platform, yapay zekayla geliştirmeye uygunluk            |
-| —          | `<webview>` yerine `WebContentsView`                                                                   | Daha güvenli ve Electron'un önerdiği modern API                                                                          |
-| 2026-11-12 | Proje adı **Teneke**, GitHub: ataeyvaz/teneke                                                          | Kullanıcı belirledi                                                                                                      |
-| 2026-11-12 | TypeScript 6.0 (7.0 değil)                                                                             | typescript-eslint henüz TS < 6.1 destekliyor                                                                             |
-| 2026-11-12 | Electron 45, electron-vite 6, Vite 8, React 19, Tailwind 4                                             | Kurulum anındaki en güncel kararlı sürümler                                                                              |
-| 2026-11-12 | Faz 1 altı parçaya bölündü; güvenlik parçaları (3, 4, 6) Opus ile, diğerleri Sonnet ile                | Maliyet/kalite dengesi                                                                                                   |
-| 2026-11-12 | Araçlar: ESLint 10 (strictTypeChecked), Prettier, Vitest 5, Playwright, Electronegativity              | CLAUDE.md yığın listesi; kurallar `eslint.config.mjs` içinde (renderer'da Node/electron import yasak, test atlama yasak) |
-| 2026-11-12 | E2E testler `npm run test:e2e` ile önce derlenir; `--pass-with-no-tests` ilk e2e test Parça 6'ya kadar | Boş test klasörü hata vermesin                                                                                           |
+| Tarih      | Karar                                                                                                                                      | Neden                                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| —          | Electron + TypeScript seçildi                                                                                                              | Chromium uyumluluğu, güvenlik yamalarının hızlı gelmesi, çapraz platform, yapay zekayla geliştirmeye uygunluk            |
+| —          | `<webview>` yerine `WebContentsView`                                                                                                       | Daha güvenli ve Electron'un önerdiği modern API                                                                          |
+| 2026-11-12 | Proje adı **Teneke**, GitHub: ataeyvaz/teneke                                                                                              | Kullanıcı belirledi                                                                                                      |
+| 2026-11-12 | TypeScript 6.0 (7.0 değil)                                                                                                                 | typescript-eslint henüz TS < 6.1 destekliyor                                                                             |
+| 2026-11-12 | Electron 45, electron-vite 6, Vite 8, React 19, Tailwind 4                                                                                 | Kurulum anındaki en güncel kararlı sürümler                                                                              |
+| 2026-11-12 | Faz 1 altı parçaya bölündü; güvenlik parçaları (3, 4, 6) Opus ile, diğerleri Sonnet ile                                                    | Maliyet/kalite dengesi                                                                                                   |
+| 2026-11-12 | Araçlar: ESLint 10 (strictTypeChecked), Prettier, Vitest 5, Playwright, Electronegativity                                                  | CLAUDE.md yığın listesi; kurallar `eslint.config.mjs` içinde (renderer'da Node/electron import yasak, test atlama yasak) |
+| 2026-11-12 | E2E testler `npm run test:e2e` ile önce derlenir; `--pass-with-no-tests` ilk e2e test Parça 6'ya kadar                                     | Boş test klasörü hata vermesin                                                                                           |
+| 2026-11-12 | Arayüz `app://ui` özel protokolünden, CSP HTTP başlığıyla (`src/main/app/csp.ts`); dev modda gevşetilmiş dev CSP (unsafe-inline, eval yok) | Vite/React hızlı yenileme inline betik gerektiriyor; üretim CSP'si sıkı kalıyor                                          |
+| 2026-11-12 | BaseWindow + ayrı WebContentsView'lar; arayüz `teneke-ui` (bellekte), siteler `persist:default` oturumunda                                 | Arayüz ve web içeriği hiçbir şey paylaşmasın                                                                             |
+| 2026-11-12 | Sitelere giden User-Agent'tan `Electron/x` ve `teneke/x` çıkarıldı                                                                         | Uyumluluk: Google girişi vb. gömülü tarayıcıları engelliyor                                                              |
+| 2026-11-12 | Varsayılan açılış sayfası DuckDuckGo                                                                                                       | Kullanıcı onayladı; Faz 3'te ayarlanabilir olacak                                                                        |
