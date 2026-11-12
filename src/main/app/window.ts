@@ -63,7 +63,9 @@ export function createMainWindow(
     layout()
   }
 
-  const tabs = new TabManager(win, sessions.contentSession, sendTabState, setHtmlFullscreen)
+  const tabs = new TabManager(win, sessions.contentSession, sendTabState, setHtmlFullscreen, () => {
+    layout()
+  })
   ipc.attach(uiView.webContents, tabs)
 
   const layout = (): void => {
@@ -72,7 +74,10 @@ export function createMainWindow(
       tabs.setBounds({ x: 0, y: 0, width, height })
       return
     }
-    uiView.setBounds({ x: 0, y: 0, width, height: TOOLBAR_HEIGHT })
+    // While a page failed to load, the UI view covers the whole window and
+    // draws the error page below the toolbar (the tab view is hidden).
+    const uiHeight = tabs.activeHasError() ? height : TOOLBAR_HEIGHT
+    uiView.setBounds({ x: 0, y: 0, width, height: uiHeight })
     tabs.setBounds({
       x: 0,
       y: TOOLBAR_HEIGHT,

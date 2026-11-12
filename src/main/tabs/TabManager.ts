@@ -1,5 +1,5 @@
 import { dialog, WebContentsView, type BaseWindow, type Rectangle, type Session } from 'electron'
-import type { TabState } from '@shared/ipc'
+import type { TabLoadError, TabState } from '@shared/ipc'
 import { contentWebPreferences } from '../app/web-preferences'
 import { guardWebContentNavigation } from '../app/navigation-guard'
 import type { NavigationTarget } from '../ipc/IpcRouter'
@@ -7,6 +7,8 @@ import type { NavigationTarget } from '../ipc/IpcRouter'
 interface Tab {
   id: number
   view: WebContentsView
+  /** Set after a failed main-frame load; cleared by the next navigation. */
+  error: TabLoadError | null
 }
 
 /**
@@ -26,7 +28,9 @@ export class TabManager implements NavigationTarget {
     private readonly contentSession: Session,
     private readonly onActiveStateChange: (state: TabState) => void,
     /** A page entered/left HTML fullscreen (e.g. a video player). */
-    private readonly onHtmlFullscreenChange: (fullscreen: boolean) => void = () => undefined
+    private readonly onHtmlFullscreenChange: (fullscreen: boolean) => void = () => undefined,
+    /** The active tab started/stopped showing the error page (layout changes). */
+    private readonly onErrorPageChange: () => void = () => undefined
   ) {}
 
   /** Opens `url` in a new tab and makes it active. */
@@ -34,7 +38,7 @@ export class TabManager implements NavigationTarget {
     const view = new WebContentsView({
       webPreferences: { ...contentWebPreferences(), session: this.contentSession }
     })
-    const tab: Tab = { id: this.nextId++, view }
+    const tab: Tab = { id: this.nextId++, view, error: null }
 
     // Phase 1: pop-ups load in the current tab. Phase 3: open a new tab instead.
     guardWebContentNavigation(view.webContents, (popupUrl) => {
@@ -49,6 +53,24 @@ export class TabManager implements NavigationTarget {
     view.webContents.on('did-navigate', emit)
     view.webContents.on('did-navigate-in-page', emit)
     view.webContents.on('page-title-updated', emit)
+    // A failed main-frame load shows our own error page (rendered by the
+    // browser UI, never inside the web content view). ERR_ABORTED (-3) is not
+    // an error: the user navigated again or a guard blocked a redirect.
+    view.webContents.on('did-fail-load', (_event, code, description, failedUrl, isMainFrame) => {
+      if (!isMainFrame || code === -3) return
+      tab.error = { code, description, url: failedUrl }
+      this.applyVisibility()
+      emit()
+    })
+    // Any new main-frame navigation (retry, back, forward, typing) clears the
+    // error. Chromium's own internal error document is not a "new" navigation.
+    view.webContents.on('did-start-navigation', (details) => {
+      if (!details.isMainFrame || details.isSameDocument) return
+      if (details.url.startsWith('chrome-error://')) return
+      if (tab.error === null) return
+      tab.error = null
+      this.applyVisibility()
+    })
     view.webContents.on('render-process-gone', (_event, details) => {
       console.error(`[tabs] Renderer of tab ${String(tab.id)} gone:`, details.reason)
       emit()
@@ -110,6 +132,11 @@ export class TabManager implements NavigationTarget {
     this.activeTab()?.view.webContents.stop()
   }
 
+  /** True while the active tab shows the error page instead of the website. */
+  activeHasError(): boolean {
+    return this.activeTab()?.error != null
+  }
+
   /** State of the active tab, or null when there is none. */
   activeState(): TabState | null {
     const tab = this.activeTab()
@@ -154,12 +181,18 @@ export class TabManager implements NavigationTarget {
     this.activeTabId = null
   }
 
+  /** Only the active tab is visible, and not while it shows the error page. */
+  private applyVisibility(): void {
+    for (const tab of this.tabs) {
+      tab.view.setVisible(tab.id === this.activeTabId && tab.error === null)
+    }
+    this.onErrorPageChange()
+  }
+
   private activate(id: number): void {
     this.activeTabId = id
-    for (const tab of this.tabs) {
-      tab.view.setVisible(tab.id === id)
-      tab.view.setBounds(this.contentBounds)
-    }
+    for (const tab of this.tabs) tab.view.setBounds(this.contentBounds)
+    this.applyVisibility()
     const active = this.activeTab()
     if (active) this.emitIfActive(active)
   }
@@ -203,6 +236,7 @@ function stateOf(tab: Tab): TabState {
     title: contents.getTitle(),
     isLoading: contents.isLoading(),
     canGoBack: history.canGoBack(),
-    canGoForward: history.canGoForward()
+    canGoForward: history.canGoForward(),
+    error: tab.error
   }
 }

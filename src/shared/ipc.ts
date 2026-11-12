@@ -16,6 +16,16 @@ export const IpcChannel = {
 /** Upper bound for anything typed into the address bar. */
 export const MAX_ADDRESS_INPUT_LENGTH = 2048
 
+/** Why the main page of a tab failed to load (Chromium net error). */
+export interface TabLoadError {
+  /** Chromium net error code, e.g. -105. */
+  code: number
+  /** Chromium error name, e.g. "ERR_NAME_NOT_RESOLVED". */
+  description: string
+  /** The address that failed (shown to the user). */
+  url: string
+}
+
 /** State of the active tab, pushed from main to the UI. */
 export interface TabState {
   id: number
@@ -24,4 +34,6 @@ export interface TabState {
   isLoading: boolean
   canGoBack: boolean
   canGoForward: boolean
+  /** Set while the page failed to load; the UI then shows an error page. */
+  error: TabLoadError | null
 }

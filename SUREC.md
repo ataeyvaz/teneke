@@ -3,7 +3,7 @@
 Bu dosya projenin hafızasıdır. Claude her oturumun başında okur, her görev bitince günceller.
 
 **Şu anki faz:** Faz 2 — Erken uyumluluk testleri
-**Sıradaki görev:** Faz 2 — elle test sonuçları işlendi; düzeltme planı kullanıcı onayında (hata sayfası, sağ tık menüsü, Google/Cloudflare kimlik araştırması)
+**Sıradaki görev:** Faz 2 — B: sağ tık menüsü (Sonnet), sonra C: Google/Cloudflare kimlik araştırması (Opus, önce araştırma), sonra D
 
 ---
 
@@ -125,7 +125,7 @@ Her fazın sonunda:
 - Electronegativity bakımı yavaş (son sürüm 2023-03) ve kurulum bağımlılığı `tar` için `npm audit` "critical" gösteriyor. Yalnızca geliştirme aracı, uygulamaya girmiyor. `npm audit fix --force` ÇALIŞTIRMA. Alternatif ileride değerlendirilebilir.
 - `npm audit` ayrıca eslint/typescript-eslint zincirinde `minimatch` kaynaklı orta seviye uyarılar veriyor (yalnızca geliştirme aracı).
 
-- `instagram.com` (www'suz): **ağ sorunu, Teneke hatası değil.** 2026-11-12'de `curl -4` de aynı IP'ye (31.13.65.174) zaman aşımı veriyor; IPv6 yok. Kullanıcının Chrome'u açıyor çünkü büyük olasılıkla önbellekteki kalıcı yönlendirme (301 → www) ile hiç bağlanmadan www'ya gidiyor. **Gerçek Teneke eksiği:** yükleme başarısız olunca boş beyaz sayfa gösteriliyor, hata sayfası yok.
+- `instagram.com` (www'suz): **ağ sorunu, Teneke hatası değil.** 2026-11-12'de `curl -4` de aynı IP'ye (31.13.65.174) zaman aşımı veriyor; IPv6 yok. Kullanıcının Chrome'u açıyor çünkü büyük olasılıkla önbellekteki kalıcı yönlendirme (301 → www) ile hiç bağlanmadan www'ya gidiyor. **Teneke eksiği düzeltildi (2026-11-12):** yükleme başarısız olunca artık "Tekrar dene" düğmeli hata sayfası çıkıyor.
 - Google girişi "Bu tarayıcı güvenli olmayabilir" diyor; krunker.io'da Cloudflare doğrulaması başarısız. Olası neden: Electron'un tarayıcı kimliği (UA + `Sec-CH-UA` istemci ipuçları) gerçek Chrome ile tutarsız ve gömülü tarayıcı gibi görünüyor. Araştırılacak (taklit/kimlik konusu güvenlik ve dürüstlük açısından ayrıca değerlendirilecek).
 - Sağ tık menüsü yok (kopyala, yapıştır, bağlantıyı aç, resmi kaydet...).
 - Kamera/mikrofon reddediliyor (WhatsApp görüntülü arama "izin verin" diyor) — beklenen, izin sorma arayüzü Faz 3.
@@ -164,3 +164,4 @@ Her fazın sonunda:
 | 2026-11-12 | İkili arama (DDG + Google yan yana) Faz 3 sekmelerinin hemen ardından; ayarlarda açma/kapama düğmesi                                                           | Kullanıcı isteği; gizlilik nedeniyle isteğe bağlı                                                                        |
 | 2026-11-12 | Gerçek site testleri ayrı: `npm run test:compat` (internet gerekir), `test:e2e` internetsiz kalır                                                              | Testler tekrarlanabilir olsun                                                                                            |
 | 2026-11-12 | Pencere kapanışı: önce sekmeler `close({ waitForBeforeUnload: true })`, sonra pencere                                                                          | BaseWindow alt view'lara beforeunload sormuyor; veri kaybını önlemek için Chrome davranışı                               |
+| 2026-11-12 | Yükleme hatası sayfası tarayıcı arayüzü (UI view) tarafından çiziliyor; hata varken UI view tüm pencereyi kaplar, sekme view'ı gizlenir                        | Web içeriğine yeni origin/kapı açmamak; siteler hata sayfasını taklit edemez                                             |
