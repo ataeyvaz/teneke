@@ -1,6 +1,15 @@
-import { dialog, WebContentsView, type BaseWindow, type Rectangle, type Session } from 'electron'
+import {
+  clipboard,
+  dialog,
+  Menu,
+  WebContentsView,
+  type BaseWindow,
+  type Rectangle,
+  type Session
+} from 'electron'
 import type { TabLoadError, TabState } from '@shared/ipc'
 import { contentWebPreferences } from '../app/web-preferences'
+import { buildContextMenu } from '../app/context-menu'
 import { guardWebContentNavigation } from '../app/navigation-guard'
 import type { NavigationTarget } from '../ipc/IpcRouter'
 
@@ -89,6 +98,34 @@ export class TabManager implements NavigationTarget {
         detail: 'Yaptığınız değişiklikler kaydedilmemiş olabilir.'
       })
       if (choice === 0) event.preventDefault() // ignore beforeunload and leave
+    })
+    view.webContents.on('context-menu', (_event, params) => {
+      if (this.window.isDestroyed()) return
+      const contents = view.webContents
+      const menu = Menu.buildFromTemplate(
+        buildContextMenu(params, {
+          canGoBack: contents.navigationHistory.canGoBack(),
+          canGoForward: contents.navigationHistory.canGoForward(),
+          goBack: () => {
+            this.goBack()
+          },
+          goForward: () => {
+            this.goForward()
+          },
+          reload: () => {
+            contents.reload()
+          },
+          copyText: (text) => {
+            clipboard.writeText(text).catch((error: unknown) => {
+              console.warn('[tabs] Clipboard write failed:', error)
+            })
+          },
+          saveImage: (url) => {
+            contents.downloadURL(url)
+          }
+        })
+      )
+      menu.popup({ window: this.window })
     })
     view.webContents.on('enter-html-full-screen', () => {
       if (tab.id === this.activeTabId) this.onHtmlFullscreenChange(true)

@@ -1,10 +1,11 @@
 import { join } from 'node:path'
-import { BaseWindow, WebContentsView } from 'electron'
+import { BaseWindow, Menu, WebContentsView } from 'electron'
 import { DEFAULT_HOMEPAGE, TOOLBAR_HEIGHT } from '@shared/constants'
 import { IpcChannel, type TabState } from '@shared/ipc'
 import type { IpcRouter } from '../ipc/IpcRouter'
 import type { SessionManager } from '../sessions/SessionManager'
 import { TabManager } from '../tabs/TabManager'
+import { buildContextMenu } from './context-menu'
 import { guardUiNavigation } from './navigation-guard'
 import { uiWebPreferences } from './web-preferences'
 
@@ -45,6 +46,22 @@ export function createMainWindow(
   })
   uiView.setBackgroundColor('#171717')
   guardUiNavigation(uiView.webContents, ui.origin)
+  // Right-click in the address bar: cut / copy / paste / select all.
+  uiView.webContents.on('context-menu', (_event, params) => {
+    if (!params.isEditable || win.isDestroyed()) return
+    const noop = (): void => undefined
+    Menu.buildFromTemplate(
+      buildContextMenu(params, {
+        canGoBack: false,
+        canGoForward: false,
+        goBack: noop,
+        goForward: noop,
+        reload: noop,
+        copyText: noop,
+        saveImage: noop
+      })
+    ).popup({ window: win })
+  })
   win.contentView.addChildView(uiView)
 
   const sendTabState = (state: TabState): void => {
